@@ -78,32 +78,10 @@ async def handle_options(request):
     )
 
 
-def run_server():
+if __name__ == "__main__":
     app = web.Application()
     app.router.add_get("/", lambda r: web.FileResponse("client.html"))
+    app.router.add_get("/admin", lambda r: web.FileResponse("admin.html"))
     app.router.add_post("/offer", offer)
     app.router.add_options("/offer", handle_options)
     web.run_app(app, port=8080, handle_signals=False)
-
-
-def signal_handler(sig, frame):
-    logging.info("Signal received, exiting...")
-    webui.exit()
-    os._exit(0)
-
-
-if __name__ == "__main__":
-    # Handle signals to ensure WebUI closes
-    signal.signal(signal.SIGINT, signal_handler)
-    signal.signal(signal.SIGTERM, signal_handler)
-
-    # Start aiohttp server in a separate thread
-    server_thread = threading.Thread(target=run_server, daemon=True)
-    server_thread.start()
-
-    try:
-        window = webui.Window()
-        window.show("admin.html")
-        webui.wait()
-    except e:
-        logging.error(f"!!!: {e}")
