@@ -1,64 +1,109 @@
 import logging
 import sys
+import json
+import threading
+import os
+import signal
+from webui import webui
+from aiohttp import web
+from aiortc import RTCPeerConnection, RTCSessionDescription
+from aiortc.contrib.media import MediaRelay
 
 log_format = '[%(relativeCreated)d][%(name)s] %(levelname)s - %(message)s'
-logging.basicConfig(level=logging.DEBUG, format=log_format, stream=sys.stdout)
+logging.basicConfig(level=logging.INFO, format=log_format, stream=sys.stdout)
 
-import asyncio
+pcs = set()
+relay = MediaRelay()
+relay_track = None
 
-import ffmpeg
-import websockets
 
+async def offer(request):
+    global relay_track
+    params = await request.json()
+    offer = RTCSessionDescription(sdp=params["sdp"], type=params["type"])
+    logging.info(f"offer: {params.get('role')}")
 
-async def stream_handler(websocket):
-    logging.info("Client connected")
+    pc = RTCPeerConnection()
+    pcs.add(pc)
 
-    # Build the FFmpeg command using the fluent interface
-    # input('pipe:', ...) tells FFmpeg to listen to stdin
-    process = (
-        ffmpeg
-        .input('pipe:',
-               format='webm',
-               codec='vp8',
-               probesize=32,  # Minimum data for format detection
-               analyzeduration=0  # Skip stream analysis
-               )
-        .filter('scale', 1920, 1080, force_original_aspect_ratio='decrease')
-        .filter('pad', 1920, 1080, '(ow-iw)/2', '(oh-ih)/2')
-        .output(
-            'udp://127.0.0.1:1234',  # Destination IP and Port
-            vcodec='libx264',
-            preset='ultrafast',  # Zero encoding delay
-            tune='zerolatency',  # Removes frame reordering (B-frames)
-            format='mpegts',
-            flush_packets=1,  # Send packets to UDP immediately
-            bufsize='100k'  # Small buffer to prevent backlog
-        )
-        .run_async(pipe_stdin=True)
+    @pc.on("track")
+    def on_track(track):
+        global relay_track
+        if params.get("role") == "broadcaster":
+            relay_track = track
+            logging.info(f"Broadcaster track received: {track.kind}")
+
+    @pc.on("connectionstatechange")
+    async def on_connectionstatechange():
+        logging.info(f"Connection state changed: {pc.connectionState}")
+        # if pc.connectionState in ["failed", "closed"]:
+        #     await pc.close()
+        #     pcs.discard(pc)
+
+    await pc.setRemoteDescription(offer)
+
+    # If a track exists, add it to the viewer's connection
+    if params.get("role") == "viewer":
+        if relay_track:
+            pc.addTrack(relay.subscribe(relay_track))
+            logging.info("Added relayed track to viewer")
+        else:
+            logging.warning("Viewer connected but no broadcaster track available")
+
+    answer = await pc.createAnswer()
+    await pc.setLocalDescription(answer)
+
+    return web.Response(
+        content_type="application/json",
+        text=json.dumps({
+            "sdp": pc.localDescription.sdp,
+            "type": pc.localDescription.type
+        }),
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "POST, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type",
+        }
     )
 
-    try:
-        async for message in websocket:
-            # Feed the binary message from WebSocket into FFmpeg's stdin
-            process.stdin.write(message)
-            logging.info("message")
 
-        # When the socket closes, close the pipe so FFmpeg can finish gracefully
-        process.stdin.close()
-    except websockets.exceptions.ConnectionClosed:
-        logging.info("Client disconnected")
-    finally:
-        if process.poll() is None:  # If process is still running, kill it
-            process.terminate()
-            logging.info("FFmpeg process terminated.")
+async def handle_options(request):
+    return web.Response(
+        status=204,
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "POST, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type",
+        }
+    )
 
 
-async def main():
-    # Start the WebSocket server on localhost:3000
-    async with websockets.serve(stream_handler, "localhost", 3000):
-        logging.info("Server started on ws://localhost:3000")
-        await asyncio.Future()  # Keep running
+def run_server():
+    app = web.Application()
+    app.router.add_get("/", lambda r: web.FileResponse("client.html"))
+    app.router.add_post("/offer", offer)
+    app.router.add_options("/offer", handle_options)
+    web.run_app(app, port=8080, handle_signals=False)
+
+
+def signal_handler(sig, frame):
+    logging.info("Signal received, exiting...")
+    webui.exit()
+    os._exit(0)
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    # Handle signals to ensure WebUI closes
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+
+    # Start aiohttp server in a separate thread
+    server_thread = threading.Thread(target=run_server, daemon=True)
+    server_thread.start()
+
+    try:
+        window = webui.Window()
+        window.show("admin.html")
+        webui.wait()
+    except e:
+        logging.error(f"!!!: {e}")

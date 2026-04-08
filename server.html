@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<body>
+<h2>WebRTC Screencast</h2>
+<button onclick="start('broadcaster')">Start Broadcasting</button>
+<br><br>
+
+<script>
+    const pc = new RTCPeerConnection();
+
+    pc.ontrack = (event) => {
+        document.getElementById('video').srcObject = event.streams[0];
+    };
+
+    async function start(role) {
+        const stream = await navigator.mediaDevices.getDisplayMedia({
+            video: {frameRate: 60}
+        });
+        stream.getTracks().forEach(track => pc.addTrack(track, stream));
+    }
+
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+
+    const response = await fetch('/offer', {
+        method: 'POST',
+        body: JSON.stringify({sdp: pc.localDescription.sdp, type: pc.localDescription.type, role: role}),
+        headers: {'Content-Type': 'application/json'}
+    });
+
+    const answer = await response.json();
+    await pc.setRemoteDescription(new RTCSessionDescription(answer));
+    }
+</script>
+</body>
+</html>

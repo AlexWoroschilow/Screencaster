@@ -1,4 +1,8 @@
 asyncio
 websockets
 ffmpeg-python
-ffpyplayer
+opencv-python
+mss
+aiohttp
+aiortc
+webui2
