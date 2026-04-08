@@ -1,0 +1,78 @@
+import json
+import logging
+from aiohttp import web
+from aiortc import RTCPeerConnection, RTCSessionDescription
+from aiortc.contrib.media import MediaRelay
+
+class ScreencastServer:
+    def __init__(self):
+        self.pcs = set()
+        self.relay = MediaRelay()
+        self.relay_track = None
+
+    async def offer(self, request):
+        params = await request.json()
+        offer = RTCSessionDescription(sdp=params["sdp"], type=params["type"])
+        role = params.get("role")
+        logging.info(f"offer: {role}")
+
+        pc = RTCPeerConnection()
+        self.pcs.add(pc)
+
+        @pc.on("track")
+        def on_track(track):
+            if role == "broadcaster":
+                self.relay_track = track
+                logging.info(f"Broadcaster track received: {track.kind}")
+
+        @pc.on("connectionstatechange")
+        async def on_connectionstatechange():
+            logging.info(f"Connection state changed: {pc.connectionState}")
+            if pc.connectionState in ["failed", "closed"]:
+                await pc.close()
+                self.pcs.discard(pc)
+
+        await pc.setRemoteDescription(offer)
+
+        # If a track exists, add it to the viewer's connection
+        if role == "viewer":
+            if self.relay_track:
+                pc.addTrack(self.relay.subscribe(self.relay_track))
+                logging.info("Added relayed track to viewer")
+            else:
+                logging.warning("Viewer connected but no broadcaster track available")
+
+        answer = await pc.createAnswer()
+        await pc.setLocalDescription(answer)
+
+        return web.Response(
+            content_type="application/json",
+            text=json.dumps({
+                "sdp": pc.localDescription.sdp,
+                "type": pc.localDescription.type
+            }),
+            headers={
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "POST, OPTIONS",
+                "Access-Control-Allow-Headers": "Content-Type",
+            }
+        )
+
+    async def handle_options(self, request):
+        return web.Response(
+            status=204,
+            headers={
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "POST, OPTIONS",
+                "Access-Control-Allow-Headers": "Content-Type",
+            }
+        )
+
+    def run(self, port=8080):
+        app = web.Application()
+        app.router.add_get("/", lambda r: web.FileResponse("client.html"))
+        app.router.add_get("/admin", lambda r: web.FileResponse("admin.html"))
+        app.router.add_post("/offer", self.offer)
+        app.router.add_options("/offer", self.handle_options)
+        web.run_app(app, port=port, handle_signals=False)
+

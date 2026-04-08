@@ -2,9 +2,9 @@
 <html>
 <body>
 <h2>WebRTC Screencast</h2>
-<button id="button" onclick="start('viewer')">View Stream</button>
+<h3>Click to start</h3>
 <br><br>
-<video id="video" autoplay playsinline style="width: 80%; border: 1px solid black;"></video>
+<video id="video" autoplay playsinline style="width: 100%; height:auto;"></video>
 
 <script>
     const pc = new RTCPeerConnection();
@@ -32,6 +32,11 @@
         const answer = await response.json();
         await pc.setRemoteDescription(new RTCSessionDescription(answer));
     }
+
+    document.addEventListener("click", () => {
+        start('viewer');
+    });
+
 </script>
 </body>
 </html>

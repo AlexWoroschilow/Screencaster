@@ -1,87 +1,63 @@
 import logging
-import sys
-import json
-import threading
 import os
 import signal
+import sys
+import threading
+from pathlib import Path
+
+import pystray
+import webview
+from PIL import Image
 from webui import webui
-from aiohttp import web
-from aiortc import RTCPeerConnection, RTCSessionDescription
-from aiortc.contrib.media import MediaRelay
+
+from src.server import ScreencastServer
+from src.websocket import ScreencastWebsocketServer
 
 log_format = '[%(relativeCreated)d][%(name)s] %(levelname)s - %(message)s'
-logging.basicConfig(level=logging.INFO, format=log_format, stream=sys.stdout)
+logging.basicConfig(level=logging.DEBUG, format=log_format, stream=sys.stdout)
 
-pcs = set()
-relay = MediaRelay()
-relay_track = None
+logger = logging.getLogger(Path(__file__).stem)
 
-
-async def offer(request):
-    global relay_track
-    params = await request.json()
-    offer = RTCSessionDescription(sdp=params["sdp"], type=params["type"])
-    logging.info(f"offer: {params.get('role')}")
-
-    pc = RTCPeerConnection()
-    pcs.add(pc)
-
-    @pc.on("track")
-    def on_track(track):
-        global relay_track
-        if params.get("role") == "broadcaster":
-            relay_track = track
-            logging.info(f"Broadcaster track received: {track.kind}")
-
-    @pc.on("connectionstatechange")
-    async def on_connectionstatechange():
-        logging.info(f"Connection state changed: {pc.connectionState}")
-        # if pc.connectionState in ["failed", "closed"]:
-        #     await pc.close()
-        #     pcs.discard(pc)
-
-    await pc.setRemoteDescription(offer)
-
-    # If a track exists, add it to the viewer's connection
-    if params.get("role") == "viewer":
-        if relay_track:
-            pc.addTrack(relay.subscribe(relay_track))
-            logging.info("Added relayed track to viewer")
-        else:
-            logging.warning("Viewer connected but no broadcaster track available")
-
-    answer = await pc.createAnswer()
-    await pc.setLocalDescription(answer)
-
-    return web.Response(
-        content_type="application/json",
-        text=json.dumps({
-            "sdp": pc.localDescription.sdp,
-            "type": pc.localDescription.type
-        }),
-        headers={
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "POST, OPTIONS",
-            "Access-Control-Allow-Headers": "Content-Type",
-        }
-    )
+main_window = None
 
 
-async def handle_options(request):
-    return web.Response(
-        status=204,
-        headers={
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "POST, OPTIONS",
-            "Access-Control-Allow-Headers": "Content-Type",
-        }
-    )
+def run_server_http():
+    ScreencastServer().run()
+
+
+def run_server_websocket():
+    ScreencastWebsocketServer().run()
+
+
+# --- Tray Logic ---
+def run_window():
+    image = Image.open(os.path.abspath("icon.png"))
+
+    menu = pystray.Menu(pystray.MenuItem("Quit", signal_exit))
+    icon = pystray.Icon("screen-cast-tray", image, "Screencaster", menu)
+    icon.run_detached()
+
+
+def signal_exit(icon, item):
+    icon.stop()
+    os._exit(0)
+
+
+def signal_handler(sig, frame):
+    logging.info("Signal received, exiting...")
+    webui.exit()
+    os._exit(0)
 
 
 if __name__ == "__main__":
-    app = web.Application()
-    app.router.add_get("/", lambda r: web.FileResponse("client.html"))
-    app.router.add_get("/admin", lambda r: web.FileResponse("admin.html"))
-    app.router.add_post("/offer", offer)
-    app.router.add_options("/offer", handle_options)
-    web.run_app(app, port=8080, handle_signals=False)
+    # Handle signals to ensure WebUI closes
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+
+    # Start aiohttp server in a separate thread
+    threading.Thread(target=run_server_http, daemon=True).start()
+    threading.Thread(target=run_server_websocket, daemon=True).start()
+    threading.Thread(target=run_window, daemon=True).start()
+
+    main_window = webview.create_window('Screencast', "admin.html")
+    webview.start(lambda w: w.set_title('Screencast Admin'), main_window)

@@ -6,3 +6,5 @@ mss
 aiohttp
 aiortc
 webui2
+Pillow
+pystray
