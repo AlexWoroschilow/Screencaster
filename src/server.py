@@ -4,6 +4,7 @@ from aiohttp import web
 from aiortc import RTCPeerConnection, RTCSessionDescription
 from aiortc.contrib.media import MediaRelay
 
+
 class ScreencastServer:
     def __init__(self):
         self.pcs = set()
@@ -71,8 +72,6 @@ class ScreencastServer:
     def run(self, port=8080):
         app = web.Application()
         app.router.add_get("/", lambda r: web.FileResponse("client.html"))
-        app.router.add_get("/admin", lambda r: web.FileResponse("admin.html"))
         app.router.add_post("/offer", self.offer)
         app.router.add_options("/offer", self.handle_options)
         web.run_app(app, port=port, handle_signals=False)
-
