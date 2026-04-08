@@ -1,41 +1,56 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
+<head>
+</head>
 <body>
-    <h2>WebRTC Screencast</h2>
-    <button onclick="start('broadcaster')">Start Broadcasting</button>
-    <button onclick="start('viewer')">View Stream</button>
-    <br><br>
-    <video id="video" autoplay playsinline style="width: 80%; border: 1px solid black;"></video>
+<script>
+    async function main() {
+        return new Promise(async (resolve, reject) => {
+            const socket = new WebSocket('ws://localhost:3000');
 
-    <script>
-        const pc = new RTCPeerConnection();
+            try {
 
-        pc.ontrack = (event) => {
-            document.getElementById('video').srcObject = event.streams[0];
-        };
+                setTimeout(async () => {
+                    const stream = await navigator.mediaDevices.getDisplayMedia({
+                        video: {
+                            frameRate: {ideal: 60, max: 60} // Explicitly request 60 FPS
+                        },
+                    });
+                    const recorder = new MediaRecorder(stream, {
+                        mimeType: 'video/webm; codecs=vp8'
+                    });
+                    recorder.ondataavailable = (e) => {
+                        if (e.data.size > 0) socket.send(e.data);
+                    };
 
-        async function start(role) {
-            if (role === 'broadcaster') {
-                const stream = await navigator.mediaDevices.getDisplayMedia({
-                    video: { frameRate: 60 }
-                });
-                stream.getTracks().forEach(track => pc.addTrack(track, stream));
-            } else {
-                pc.addTransceiver('video', { direction: 'recvonly' });
+                    // Start recording and send a chunk every 1 second
+                    recorder.start(1000 / 30);
+
+                }, 1000);
+
+            } catch (e) {
+                return reject(e);
             }
 
-            const offer = await pc.createOffer();
-            await pc.setLocalDescription(offer);
+            resolve();
+        });
+    }
 
-            const response = await fetch('/offer', {
-                method: 'POST',
-                body: JSON.stringify({ sdp: pc.localDescription.sdp, type: pc.localDescription.type, role: role }),
-                headers: { 'Content-Type': 'application/json' }
-            });
 
-            const answer = await response.json();
-            await pc.setRemoteDescription(new RTCSessionDescription(answer));
-        }
-    </script>
+    function test() {
+
+        (confirm("Allow screencast?")) &&
+        main().then(() => {
+            console.info("!!!");
+        }).catch((error) => {
+            console.info("???", error);
+        });
+    }
+
+    test();
+
+
+</script>
+
 </body>
 </html>
