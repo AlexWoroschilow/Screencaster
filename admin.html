@@ -11,7 +11,7 @@
     async function start() {
         try {
             const stream = await navigator.mediaDevices.getDisplayMedia({
-                video: {frameRate: 60}
+                video: {frameRate: 30}
             });
             document.getElementById('video').srcObject = stream;
             stream.getTracks().forEach(track => pc.addTrack(track, stream));
