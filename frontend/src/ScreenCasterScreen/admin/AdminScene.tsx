@@ -101,7 +101,7 @@ export class AdminScene<
     render() {
 
         return <>
-            <Columns className={"AdminScene"} centered={true} m={"0"}>
+            <Columns className={"AdminScene"} centered={false} m={"0"}>
                 <Columns.Column className={"AdminSceneStream"} size={6}>
                     <video ref={this.videoRef}
                            autoPlay
