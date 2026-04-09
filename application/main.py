@@ -31,7 +31,7 @@ def run_server_websocket():
 
 # --- Tray Logic ---
 def run_window():
-    image = Image.open(os.path.abspath("icon.png"))
+    image = Image.open(os.path.abspath("src/static/images/icon.png"))
 
     menu = pystray.Menu(pystray.MenuItem("Quit", signal_exit))
     icon = pystray.Icon("screen-cast-tray", image, "Screencaster", menu)
@@ -59,5 +59,6 @@ if __name__ == "__main__":
     threading.Thread(target=run_server_websocket, daemon=True).start()
     threading.Thread(target=run_window, daemon=True).start()
 
-    main_window = webview.create_window('Screencast', "admin.html")
-    webview.start(lambda w: w.set_title('Screencast Admin'), main_window)
+    with open("admin.html", "+rb") as stream:
+        main_window = webview.create_window('Screencast', "admin.html")
+        webview.start(lambda w: w.set_title('Screencast Admin'), main_window)

@@ -1,10 +1,9 @@
 asyncio
 websockets
 ffmpeg-python
-opencv-python
-mss
 aiohttp
 aiortc
-webui2
 Pillow
 pystray
+pywebview
+qtpy

@@ -14,13 +14,21 @@
 import React from "react";
 import "./AdminScene.scss";
 import {Button, Columns, Heading} from "react-bulma-components";
+import Broadcasting, {BroadcastProps} from "./AdminScene/Broadcasting";
+import Streaming, {StreamingProps} from "./AdminScene/Streaming";
 
-export interface AdminSceneProps {
+
+export type AdminSceneProps<CustomConfig extends Record<any, any> = Record<any, any>> =
+    & BroadcastProps
+    & StreamingProps
+    & CustomConfig
+    & {
     frameRate: number | undefined,
     offer: string | undefined
 }
 
 export interface AdminSceneState {
+    stream?: MediaStream;
     error?: any
 }
 
@@ -37,6 +45,7 @@ export class AdminScene<
         this.videoRef = React.createRef();
 
         (this.state as AdminSceneState) = {
+            stream: undefined,
             error: undefined
         };
     }
@@ -47,8 +56,9 @@ export class AdminScene<
                 // @ts-ignore
                 this.videoRef.current.srcObject = stream;
 
-                this.doStreamBroadcast(stream)
-                    .catch(this.onError.bind(this));
+                return this.setState({
+                    stream: (stream as MediaStream)
+                });
             })
             .catch(this.onError.bind(this));
 
@@ -69,8 +79,14 @@ export class AdminScene<
             try {
                 const stream = await navigator.mediaDevices
                     .getDisplayMedia({
-                        video: {frameRate: this.props.frameRate}
-                    });
+                        video: {
+                            cursor: "always",
+                            displaySurface: "monitor",
+                            selfBrowserSurface: "exclude",
+                            frameRate: this.props.frameRate,
+                        },
+                        audio: true
+                    } as DisplayMediaStreamOptions);
 
                 return resolve(stream)
 
@@ -81,62 +97,12 @@ export class AdminScene<
         });
     }
 
-    async doStreamBroadcast(stream) {
-        return new Promise(async (resolve, reject) => {
-            try {
-
-                const pc = new RTCPeerConnection();
-
-                stream.getTracks().forEach(track => {
-                    pc.addTrack(track, stream);
-                });
-
-                const offer = await pc.createOffer();
-                await pc.setLocalDescription(offer);
-
-                fetch(this.props.offer, {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        sdp: pc.localDescription.sdp,
-                        type: pc.localDescription.type,
-                        role: 'broadcaster'
-                    }),
-                    headers: {'Content-Type': 'application/json'}
-                }).then((res) => res.json())
-                    .then(async (answer) => {
-                        await pc.setRemoteDescription(new RTCSessionDescription(answer));
-                        return resolve(pc)
-                    }).catch(this.onError.bind(this));
-
-            } catch (err) {
-                return reject(err)
-            }
-        });
-    }
 
     render() {
 
         return <>
-            <Columns>
-                <Columns.Column size={12}>
-                    <Heading subtitle={true} size={2}>WebRTC Screencast Admin</Heading>
-                    <Heading subtitle={true} size={4}>Broadcasting screen...</Heading>
-
-                    {(this?.state?.error?.message != undefined) &&
-                        <>
-                            <Heading subtitle={true} size={4}>
-                                {this.state.error.message}
-                            </Heading>
-                            <Button onClick={this.componentDidMount.bind(this)}
-                                    color="success"
-                                    renderAs="span">
-                                Try again
-                            </Button>
-                        </>}
-
-
-                </Columns.Column>
-                <Columns.Column size={12}>
+            <Columns className={"AdminScene"} centered={true}>
+                <Columns.Column className={"AdminSceneStream"} size={6}>
                     <video ref={this.videoRef}
                            autoPlay
                            playsInline
@@ -144,6 +110,34 @@ export class AdminScene<
                                width: "100%",
                                height: "auto"
                            }}/>
+                </Columns.Column>
+                <Columns.Column className={"AdminSceneToolbox"} size={6}>
+                    <Columns>
+
+                        {(this?.state?.error?.message != undefined) &&
+                            <Columns.Column size={12}>
+                                <Heading subtitle={true} size={4}>
+                                    {this.state.error.message}
+                                </Heading>
+                                <Button onClick={this.componentDidMount.bind(this)}
+                                        color="success"
+                                        renderAs="span">
+                                    Try again
+                                </Button>
+                            </Columns.Column>}
+
+                        {(this?.state?.stream != undefined) &&
+                            <>
+                                <Columns.Column size={12}>
+                                    <Broadcasting {...this.props} stream={this.state.stream}/>
+                                </Columns.Column>
+                                <Columns.Column size={12}>
+                                    <Streaming {...this.props} stream={this.state.stream}/>
+                                </Columns.Column>
+                            </>}
+
+                    </Columns>
+
                 </Columns.Column>
             </Columns>
 
