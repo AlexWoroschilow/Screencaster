@@ -6,10 +6,10 @@ import threading
 from pathlib import Path
 
 import pystray
-import webview
 from PIL import Image
 from webui import webui
 
+from src.window import AdminWindow
 from src.server import ScreencastServer
 from src.websocket import ScreencastWebsocketServer
 
@@ -59,6 +59,5 @@ if __name__ == "__main__":
     threading.Thread(target=run_server_websocket, daemon=True).start()
     threading.Thread(target=run_window, daemon=True).start()
 
-    with open("admin.html", "+rb") as stream:
-        main_window = webview.create_window('Screencast', "admin.html")
-        webview.start(lambda w: w.set_title('Screencast Admin'), main_window)
+    main_window = AdminWindow()
+    main_window.run()
