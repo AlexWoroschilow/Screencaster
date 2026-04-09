@@ -18,8 +18,8 @@ import AdminApplication from "./admin/AdminApplication";
 let container = document.getElementById("admin");
 if (container == undefined || container == null) {
     container = document.body.appendChild(document.createElement("div"));
-    container.setAttribute("data-offer-url", "http://localhost:8080/offer");
-    container.setAttribute("data-server-url", "http://localhost:8080");
+    container.setAttribute("data-offer-url", "http://192.168.2.83:8080/offer");
+    container.setAttribute("data-server-url", "http://192.168.2.83:8080");
     container.setAttribute("data-frame-rate", 30);
 }
 

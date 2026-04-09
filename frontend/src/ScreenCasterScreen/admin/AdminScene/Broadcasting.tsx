@@ -187,7 +187,7 @@ export default class Broadcasting<
                     <Columns.Column size={12} textAlign={"center"}>
                         <Button onClick={this.onToggledStart.bind(this)}
                                 fullwidth={true}
-                                color="success">
+                                color={`${this.state.peer == undefined ? "success " : "danger"}`} >
                             {`${this.state.peer == undefined ? "Start " : "Stop"} Broadcasting`}
 
                         </Button>
