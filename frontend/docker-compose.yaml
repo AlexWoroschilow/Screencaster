@@ -1,0 +1,12 @@
+services:
+  screencaster:
+    working_dir: /srv
+    restart: "no"
+    build:
+      context: ./
+      dockerfile: docker/Dockerfile
+    ports:
+      - 0.0.0.0:9998:9998
+    volumes:
+      - ./:/srv:cached
+    command: sh -c "cd /srv/ && make server ScreenCasterScreen"

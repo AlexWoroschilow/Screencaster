@@ -1,0 +1,45 @@
+{
+  "compilerOptions": {
+    "outDir": "./dist/",
+    ////		"noImplicitAny": true,
+    //		"noImplicitAny": false,
+    //		"module": "es6",
+            "module": "ESNext",
+    		"target": "ES2023",  // "es6",
+    //		"jsx": "react",
+//    		"moduleResolution": "node",
+            "moduleResolution": "Bundler",
+    ////		"incremental": true,
+    //		"isolatedModules": true,
+    //		"verbatimModuleSyntax": true,
+    //		"useDefineForClassFields": true,
+
+		// ... other compiler options
+		"skipLibCheck": true,
+		"noEmit": true,
+		// to avoid generating .js files by tsc command
+		"isolatedModules": true,
+		//Required for transpileOnly
+
+		// Fixes Error TS1149: File name ...  differs from already included file name ... only in casing
+		"forceConsistentCasingInFileNames": false,
+		// To import .json files as data
+		"resolveJsonModule": true,
+		// To import ".js"-extensionless .js modules
+		"allowJs": true,
+		"jsx": "react",
+		// To import from libraries when default export is not declared in imported module
+		"allowSyntheticDefaultImports" : true,
+        "esModuleInterop": true,
+
+		"typeRoots": [
+			"node_modules/@types", "./typings"
+		],
+		"types": [
+			"mocha",
+			"chai",
+			"node",
+			"global"
+		],
+	}
+}
