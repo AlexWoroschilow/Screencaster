@@ -11,7 +11,10 @@ class AdminWindow:
     def __init__(self, host="localhost", port=8080):
         self.host = host
         self.port = port
-        self.window: Window = webview.create_window('Screencast', "admin.html", width=800, height=600)
+        self.window: Window = webview.create_window(
+            'Screencast', "src/static/Admin.html",
+            width=800, height=600
+        )
 
     def load_html(self, window: Window):
         server = f"http://{self.host}:{self.port}"
@@ -27,10 +30,9 @@ class AdminWindow:
         document.body.appendChild(container);        
         """)
 
-        # Per JavaScript in das Dokument injizieren
         window.run_js(f"""
         const script = document.createElement('script');
-        script.src = 'src/static/Admin.js';
+        script.src = 'Admin.js';
         document.body.appendChild(script);
         """)
 
