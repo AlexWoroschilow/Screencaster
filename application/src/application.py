@@ -14,9 +14,6 @@ from .server.http import ScreencastServer
 from .server.websocket import ScreencastWebsocketServer
 from .window.admin import AdminWindow
 
-log_format = '[%(relativeCreated)d][%(name)s] %(levelname)s - %(message)s'
-logging.basicConfig(level=logging.DEBUG, format=log_format, stream=sys.stdout)
-
 logger = logging.getLogger(Path(__file__).stem)
 
 

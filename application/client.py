@@ -1,9 +1,6 @@
 import logging
 import sys
 
-log_format = '[%(relativeCreated)d][%(name)s] %(levelname)s - %(message)s'
-logging.basicConfig(level=logging.DEBUG, format=log_format, stream=sys.stdout)
-
 import time
 from ffpyplayer.player import MediaPlayer
 

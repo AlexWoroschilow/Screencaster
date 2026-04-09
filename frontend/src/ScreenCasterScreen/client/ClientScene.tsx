@@ -13,14 +13,14 @@
 
 import React from "react";
 import "./ClientScene.scss";
-import {Columns} from "react-bulma-components";
-import undefinedError = Mocha.utils.undefinedError;
+import {Heading} from "react-bulma-components";
 
 
 export interface ClientSceneProps {
 }
 
 export interface ClientSceneState {
+    isFullscreen?: boolean;
     peer?: RTCPeerConnection;
     stream?: MediaStream;
     error?: any
@@ -34,6 +34,7 @@ export class ClientScene<
 
     protected videoRef: React.RefObject<HTMLVideoElement>;
     protected onToggledStartRef: () => void;
+    protected onFullscreenChangeRef: () => void;
 
     constructor(props: Props) {
         super(props);
@@ -53,9 +54,19 @@ export class ClientScene<
         this.onToggledStartRef = this.onToggledStart.bind(this);
         document.addEventListener("pointerup", this.onToggledStartRef);
 
+        this.onFullscreenChangeRef = this.onFullscreenChange.bind(this);
+        document.addEventListener("fullscreenchange", this.onFullscreenChangeRef);
+
         return this.setState({
+            isFullscreen: this.isFullscreen(),
             error: undefined
         });
+    }
+
+    onFullscreenChange(event) {
+        return this.setState({
+            isFullscreen: this.isFullscreen(),
+        })
     }
 
     isFullscreen() {
@@ -80,6 +91,10 @@ export class ClientScene<
 
         (this.isFullscreen()) &&
         this.doFullscreenStop();
+
+        return this.setState({
+            isFullscreen: this.isFullscreen()
+        })
     }
 
     onToggledStart(event: any) {
@@ -96,11 +111,15 @@ export class ClientScene<
     }
 
     onStartedBroadcast(response: { peer: RTCPeerConnection, stream: MediaStream }) {
-        const stream = response.stream;
         // @ts-ignore
-        this.videoRef.current.srcObject = stream;
+        this.videoRef.current.srcObject = response.stream;
+
+        (!this.isFullscreen()) &&
+        this.doFullscreenStart();
+
         return this.setState({
-            ...response
+            stream: response.stream,
+            peer: response.peer,
         });
     }
 
@@ -169,14 +188,18 @@ export class ClientScene<
     }
 
     render() {
+        return (
+            <div className="ClientScene">
+                <div className="centered">
+                    {(this?.state?.peer && !this?.isFullscreen()) &&
+                        <Heading subtitle={true} size={3}>Click or tap to toggle Fullscreen</Heading>}
 
-        return <>
-            <Columns className={"ClientScene"} centered={false} m={"0"} p={"0"}>
-                <Columns.Column className={"ClientSceneStream"} size={12} m={"0"} p={"0"}>
-                    <video ref={this.videoRef} autoPlay playsInline/>
-                </Columns.Column>
-            </Columns>
+                    {(this?.state?.peer == undefined) &&
+                        <Heading subtitle={true} size={3}>Click or tap to begin</Heading>}
+                </div>
 
-        </>;
+                <video ref={this.videoRef} autoPlay playsInline />
+            </div>
+        );
     }
 }
