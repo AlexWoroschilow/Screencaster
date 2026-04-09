@@ -7,3 +7,4 @@ Pillow
 pystray
 pywebview
 qtpy
+netifaces

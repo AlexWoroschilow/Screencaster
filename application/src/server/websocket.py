@@ -4,8 +4,6 @@ import asyncio
 import ffmpeg
 import websockets
 
-log_format = '[%(relativeCreated)d][%(name)s] %(levelname)s - %(message)s'
-logging.basicConfig(level=logging.DEBUG, format=log_format, stream=sys.stdout)
 
 class ScreencastWebsocketServer:
     def __init__(self, host="localhost", port=3000, udp_address="127.0.0.1", udp_port=1234):
@@ -59,12 +57,14 @@ class ScreencastWebsocketServer:
         Runs the WebSocket server.
         Matches the interface of ScreencastServer.run().
         """
+
         async def main():
             async with websockets.serve(self._stream_handler, self.host, self.port):
                 self.logger.info(f"WebSocket server started on ws://{self.host}:{self.port}")
                 await asyncio.Future()  # Keep running indefinitely
 
         asyncio.run(main())
+
 
 def run_websocket_server():
     server = ScreencastWebsocketServer()

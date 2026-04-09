@@ -6,12 +6,13 @@ import sys
 import threading
 from pathlib import Path
 
+import netifaces
 import pystray
 from PIL import Image
 
-from .http import ScreencastServer
-from .websocket import ScreencastWebsocketServer
-from .window import AdminWindow
+from .server.http import ScreencastServer
+from .server.websocket import ScreencastWebsocketServer
+from .window.admin import AdminWindow
 
 log_format = '[%(relativeCreated)d][%(name)s] %(levelname)s - %(message)s'
 logging.basicConfig(level=logging.DEBUG, format=log_format, stream=sys.stdout)
@@ -21,7 +22,8 @@ logger = logging.getLogger(Path(__file__).stem)
 
 class Application:
     def __init__(self):
-        pass
+        for item in self.ips():
+            print(item)
 
     def ip(self):
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -33,6 +35,15 @@ class Application:
         finally:
             s.close()
         return ip
+
+    def ips(self):
+        interfaces = netifaces.interfaces()
+
+        for interface in interfaces:
+            addrs = netifaces.ifaddresses(interface)
+            if netifaces.AF_INET in addrs:
+                for link in addrs[netifaces.AF_INET]:
+                    yield (interface, link['addr'],)
 
     def http(self):
         server = ScreencastServer(host=self.ip(), port=8080)

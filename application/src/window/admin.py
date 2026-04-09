@@ -1,12 +1,8 @@
 import logging
-import sys
 from pathlib import Path
 
 import webview
 from webview import Window
-
-log_format = '[%(relativeCreated)d][%(name)s] %(levelname)s - %(message)s'
-logging.basicConfig(level=logging.DEBUG, format=log_format, stream=sys.stdout)
 
 logger = logging.getLogger(Path(__file__).stem)
 
