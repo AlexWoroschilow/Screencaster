@@ -18,12 +18,14 @@ class AdminWindow:
 
     def load_html(self, window: Window):
         server = f"http://{self.host}:{self.port}"
+        websocket = f"ws://{self.host}:3000"
         offer = f"{server}/offer"
 
         window.run_js(f"""
         const container = document.createElement('div');
         container.innerHTML = `<div id="admin"
                      data-offer-url="{offer}"
+                     data-websocket-url="{websocket}"
                      data-server-url="{server}"
                      data-frame-rate="30"
                 />`;

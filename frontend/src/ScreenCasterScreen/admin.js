@@ -20,12 +20,13 @@ if (container == undefined || container == null) {
     container = document.body.appendChild(document.createElement("div"));
     container.setAttribute("data-offer-url", "http://192.168.2.83:8080/offer");
     container.setAttribute("data-server-url", "http://192.168.2.83:8080");
+    container.setAttribute("data-websocket-url", "ws://192.168.2.83:3000");
     container.setAttribute("data-frame-rate", 30);
 }
-
 ReactDOM.createRoot(container).render(
     <AdminApplication
         offer={container.getAttribute("data-offer-url")}
+        websocket={container.getAttribute("data-websocket-url")}
         server={container.getAttribute("data-server-url")}
         frameRate={parseInt(container.getAttribute("data-frame-rate"))}
     />

@@ -18,10 +18,11 @@ import "./Streaming.scss";
 
 export interface StreamingProps {
     stream?: MediaStream;
+    websocket?: string | undefined;
 }
 
 export interface StreamingState {
-    peer?: RTCPeerConnection | undefined;
+    websocket?: WebSocket | undefined;
     isCopied?: boolean | undefined;
     error?: any;
 }
@@ -48,28 +49,52 @@ export default class Streaming<
     }
 
     onToggledStart(event: any) {
+
+        (this?.state?.websocket != undefined) &&
+        this.doStopStreaming(this.state.websocket)
+            .then(this.onStoppedStreaming.bind(this))
+            .catch(this.onError.bind(this));
+
+        (this?.state?.websocket == undefined) &&
+        this.doStartStreaming(this?.props?.stream)
+            .then(this.onStartedStreaming.bind(this))
+            .catch(this.onError.bind(this));
+
         return this.setState({
             error: undefined,
         });
     }
 
-    onStoppedStreaming(peer: RTCPeerConnection) {
+    onStoppedStreaming(websocket: WebSocket) {
         return this.setState({
-            peer: undefined
+            websocket: undefined
         });
     }
 
-    onStartedStreaming(peer: RTCPeerConnection) {
+    onStartedStreaming(websocket: WebSocket) {
         return this.setState({
-            peer: peer
+            websocket: websocket
         });
     }
 
-    async doStartStreamin(stream: MediaStream): Promise<void> {
+    async doStartStreaming(stream: MediaStream): Promise<WebSocket> {
         return new Promise(async (resolve, reject) => {
             try {
 
-                return resolve();
+                const socket = new WebSocket(this.props.websocket);
+                socket.onerror = () => reject(new Error(`Failed: ${this.props.websocket}`));
+                socket.onopen = () => resolve(socket);
+
+                const recorder = new MediaRecorder(stream, {
+                    mimeType: 'video/webm; codecs=vp8'
+                });
+
+                recorder.ondataavailable = (e) => {
+                    (e?.data?.size > 0) && (socket.send(e.data));
+                };
+
+                // Start recording and send a chunk every 1 second
+                recorder.start(1000 / 30);
 
             } catch (err) {
                 return reject(err);
@@ -77,10 +102,10 @@ export default class Streaming<
         });
     }
 
-    async doStopStreaming(peer: RTCPeerConnection, stream: MediaStream): Promise<void> {
+    async doStopStreaming(websocket: WebSocket): Promise<void> {
         return new Promise(async (resolve, reject) => {
             try {
-
+                websocket?.close?.(1000);
                 return resolve();
 
             } catch (err) {
@@ -101,8 +126,8 @@ export default class Streaming<
                     <Columns.Column size={12} textAlign={"center"}>
                         <Button onClick={this.onToggledStart.bind(this)}
                                 fullwidth={true}
-                                color="success">
-                            {`${this.state.peer == undefined ? "Start " : "Stop"} Streaming`}
+                                color={`${this.state.websocket == undefined ? "success" : "danger"}`}>
+                            {`${this.state.websocket == undefined ? "Start " : "Stop"} Streaming`}
 
                         </Button>
                     </Columns.Column>}

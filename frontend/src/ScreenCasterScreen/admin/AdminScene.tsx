@@ -83,9 +83,12 @@ export class AdminScene<
                             cursor: "always",
                             displaySurface: "monitor",
                             selfBrowserSurface: "exclude",
-                            frameRate: this.props.frameRate,
+                            frameRate: {
+                                ideal: this.props.frameRate,
+                                max: this.props.frameRate
+                            },
                         },
-                        audio: true
+                        audio: false
                     } as DisplayMediaStreamOptions);
 
                 return resolve(stream)

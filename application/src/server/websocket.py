@@ -25,8 +25,8 @@ class ScreencastWebsocketServer:
                    probesize=32,  # Minimum data for format detection
                    analyzeduration=0  # Skip stream analysis
                    )
-            .filter('scale', 1920, 1080, force_original_aspect_ratio='decrease')
-            .filter('pad', 1920, 1080, '(ow-iw)/2', '(oh-ih)/2')
+            # .filter('scale', 1920, 1080, force_original_aspect_ratio='decrease')
+            # .filter('pad', 1920, 1080, '(ow-iw)/2', '(oh-ih)/2')
             .output(
                 f'udp://{self.udp_address}:{self.udp_port}',  # Destination IP and Port
                 vcodec='libx264',

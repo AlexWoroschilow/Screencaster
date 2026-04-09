@@ -50,7 +50,7 @@ class Application:
         server.run()
 
     def websocket(self):
-        server = ScreencastWebsocketServer(host=self.ip(), port=3000)
+        server = ScreencastWebsocketServer(host=self.ip(), udp_address=self.ip(), port=3000)
         server.run()
 
     def tray(self):
