@@ -3,22 +3,26 @@ html {
   overflow-y: auto;
   overflow-x: hidden;
 
-  min-height: 100vh;
+  .AdminScene {
+    height: 100vh;
 
-  .AdminSceneStream {
-    background-color: #000000;
-    max-width: 640px;
-    min-height: 480px;
-    height: auto;
-    width: 100%;
+    .AdminSceneStream {
+      background-color: #000000;
+      max-width: 640px;
+      min-height: 480px;
+      height: 100%;
+      width: auto;
+    }
+
+    .AdminSceneHeader {
+
+    }
+
+    .AdminSceneToolbox {
+
+    }
   }
 
-  .AdminSceneHeader {
 
-  }
-
-  .AdminSceneToolbox {
-
-  }
 }
 
