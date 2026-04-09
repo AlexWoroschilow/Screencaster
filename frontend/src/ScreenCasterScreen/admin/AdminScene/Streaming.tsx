@@ -65,7 +65,7 @@ export default class Streaming<
         });
     }
 
-    onStoppedStreaming(websocket: WebSocket) {
+    onStoppedStreaming() {
         return this.setState({
             websocket: undefined
         });
@@ -102,7 +102,7 @@ export default class Streaming<
         });
     }
 
-    async doStopStreaming(websocket: WebSocket): Promise<void> {
+    async doStopStreaming(websocket: WebSocket = this.state.websocket): Promise<void> {
         return new Promise(async (resolve, reject) => {
             try {
                 websocket?.close?.(1000);
@@ -117,35 +117,34 @@ export default class Streaming<
 
     render() {
         return (<>
-            <Columns className={"Streaming"}>
-                <Columns.Column size={12} textAlign={"center"}>
-                    <Heading subtitle={true} size={3} m={"0"}>Streaming</Heading>
-                </Columns.Column>
-
-                {(this?.state?.error?.message == undefined) &&
+            {(this?.props?.stream) &&
+                <Columns className={"Streaming"}>
                     <Columns.Column size={12} textAlign={"center"}>
-                        <Button onClick={this.onToggledStart.bind(this)}
-                                fullwidth={true}
-                                color={`${this.state.websocket == undefined ? "success" : "danger"}`}>
-                            {`${this.state.websocket == undefined ? "Start " : "Stop"} Streaming`}
+                        <Heading subtitle={true} size={3} m={"0"}>Streaming</Heading>
+                    </Columns.Column>
 
-                        </Button>
-                    </Columns.Column>}
+                    {(this?.state?.error?.message == undefined) &&
+                        <Columns.Column size={12} textAlign={"center"}>
+                            <Button onClick={this.onToggledStart.bind(this)}
+                                    fullwidth={true}
+                                    color={`${this.state.websocket == undefined ? "success" : "danger"}`}>
+                                {`${this.state.websocket == undefined ? "Start " : "Stop"} Streaming`}
 
-                {(this?.state?.error?.message != undefined) &&
-                    <Columns.Column size={12} textAlign={"center"}>
-                        <Heading subtitle={true} size={4}>
-                            {this.state.error.message}
-                        </Heading>
-                        <Button onClick={this.onToggledStart.bind(this)}
-                                fullwidth={true}
-                                color="success">
-                            Try again
-                        </Button>
-                    </Columns.Column>}
-            </Columns>
+                            </Button>
+                        </Columns.Column>}
 
+                    {(this?.state?.error?.message != undefined) &&
+                        <Columns.Column size={12} textAlign={"center"}>
+                            <Heading subtitle={true} size={4}>
+                                {this.state.error.message}
+                            </Heading>
+                            <Button onClick={this.onToggledStart.bind(this)}
+                                    fullwidth={true}
+                                    color="success">
+                                Try again
+                            </Button>
+                        </Columns.Column>}
+                </Columns>}
         </>)
-            ;
     }
 }

@@ -54,10 +54,11 @@ export default class Broadcasting<
         });
     }
 
+
     onToggledStart(event: any) {
 
         (this?.state?.peer != undefined) &&
-        this.doStopBroadcast(this.state.peer, this?.props?.stream)
+        this.doStopBroadcast(this.state.peer)
             .then(this.onStoppedBroadcast.bind(this))
             .catch(this.onError.bind(this));
 
@@ -71,7 +72,7 @@ export default class Broadcasting<
         });
     }
 
-    onStoppedBroadcast(peer: RTCPeerConnection) {
+    onStoppedBroadcast() {
         return this.setState({
             peer: undefined
         });
@@ -116,9 +117,11 @@ export default class Broadcasting<
         });
     }
 
-    async doStopBroadcast(peer: RTCPeerConnection, stream: MediaStream): Promise<void> {
+    async doStopBroadcast(peer: RTCPeerConnection = this?.state?.peer): Promise<void> {
         return new Promise(async (resolve, reject) => {
             try {
+
+                console.info("??", peer);
 
                 if (peer == undefined) {
                     return resolve()
@@ -152,10 +155,6 @@ export default class Broadcasting<
     render() {
         return (<>
             <Columns className={"Broadcasting"}>
-                <Columns.Column size={12} textAlign={"center"}>
-                    <Heading subtitle={true} size={3} m={"0"}>Broadcasting</Heading>
-                </Columns.Column>
-
                 {(this?.props?.server != undefined) &&
                     <Columns.Column size={12} textAlign={"center"}>
                         <QRCodeSVG
@@ -183,17 +182,17 @@ export default class Broadcasting<
 
                     </Columns.Column>}
 
-                {(this?.state?.error?.message == undefined) &&
+                {(this?.state?.error?.message == undefined && this?.props?.stream) &&
                     <Columns.Column size={12} textAlign={"center"}>
                         <Button onClick={this.onToggledStart.bind(this)}
                                 fullwidth={true}
-                                color={`${this.state.peer == undefined ? "success " : "danger"}`} >
+                                color={`${this.state.peer == undefined ? "success " : "danger"}`}>
                             {`${this.state.peer == undefined ? "Start " : "Stop"} Broadcasting`}
 
                         </Button>
                     </Columns.Column>}
 
-                {(this?.state?.error?.message != undefined) &&
+                {(this?.state?.error?.message != undefined && this?.props?.stream) &&
                     <Columns.Column size={12} textAlign={"center"}>
                         <Heading subtitle={true} size={4}>
                             {this.state.error.message}
