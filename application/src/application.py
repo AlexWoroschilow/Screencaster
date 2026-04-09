@@ -54,7 +54,7 @@ class Application:
         server.run()
 
     def tray(self):
-        image = Image.open(os.path.abspath("src/static/images/icon.png"))
+        image = Image.open(os.path.abspath("static/images/icon.png"))
 
         menu = pystray.Menu(pystray.MenuItem("Quit", self.exit))
         icon = pystray.Icon("screen-cast-tray", image, "Screencaster", menu)

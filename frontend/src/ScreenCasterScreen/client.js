@@ -18,7 +18,6 @@ import ClientApplication from "./client/ClientApplication";
 let container = document.getElementById("client");
 if (container == undefined || container == null) {
     container = document.body.appendChild(document.createElement("div"));
-    container.setAttribute("data-language", "de");
 }
 
 ReactDOM.createRoot(container).render(

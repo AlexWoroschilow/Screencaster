@@ -12,7 +12,7 @@ class AdminWindow:
         self.host = host
         self.port = port
         self.window: Window = webview.create_window(
-            'Screencast', "src/static/Admin.html",
+            'Screencast', "static/Admin.html",
             width=800, height=600
         )
 

@@ -1,5 +1,7 @@
 import json
 import logging
+import os
+from pathlib import Path
 
 from aiohttp import web
 from aiortc import RTCPeerConnection, RTCSessionDescription
@@ -75,7 +77,13 @@ class ScreencastServer:
     def run(self):
 
         app = web.Application()
-        app.router.add_get("/", lambda r: web.FileResponse("src/static/client.html"))
+        app.router.add_get("/", lambda r: web.FileResponse("static/Client.html"))
         app.router.add_post("/offer", self.offer)
         app.router.add_options("/offer", self.handle_options)
+
+        static_path = os.path.join(os.getcwd(), 'static')
+        logging.info(f"!!!{static_path}")
+
+        app.router.add_static('/static/', path=static_path, name='static')
+
         web.run_app(app, host=self.host, port=self.port, handle_signals=False)

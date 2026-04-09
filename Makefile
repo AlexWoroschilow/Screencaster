@@ -21,7 +21,7 @@ build-screencaster:
 	cd $(PWD)/frontend && docker-compose run screencaster /bin/bash -c "make clean && make ScreenCasterScreen"
 	rm --recursive --force $(PWD)/application/src/static/*.js
 
-	cp --recursive --force $(PWD)/frontend/dist/static/*.js                  $(PWD)/application/src/static/
-	cp --recursive --force $(PWD)/frontend/src/ScreenCasterScreen/static/*   $(PWD)/application/src/static/
+	cp --recursive --force $(PWD)/frontend/dist/static/*.js                  $(PWD)/application/static/
+	cp --recursive --force $(PWD)/frontend/src/ScreenCasterScreen/static/*   $(PWD)/application/static/
 
 screencaster: build-screencaster
