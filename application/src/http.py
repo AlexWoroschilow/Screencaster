@@ -6,7 +6,9 @@ from aiortc.contrib.media import MediaRelay
 
 
 class ScreencastServer:
-    def __init__(self):
+    def __init__(self, host="localhost", port=8080):
+        self.host = host
+        self.port = port
         self.pcs = set()
         self.relay = MediaRelay()
         self.relay_track = None
@@ -69,9 +71,10 @@ class ScreencastServer:
             }
         )
 
-    def run(self, port=8080):
+    def run(self):
+
         app = web.Application()
         app.router.add_get("/", lambda r: web.FileResponse("client.html"))
         app.router.add_post("/offer", self.offer)
         app.router.add_options("/offer", self.handle_options)
-        web.run_app(app, port=port, handle_signals=False)
+        web.run_app(app, host=self.host, port=self.port, handle_signals=False)

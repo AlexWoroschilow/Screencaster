@@ -3,8 +3,6 @@ import sys
 from pathlib import Path
 
 import webview
-from src.server import ScreencastServer
-from src.websocket import ScreencastWebsocketServer
 from webview import Window
 
 log_format = '[%(relativeCreated)d][%(name)s] %(levelname)s - %(message)s'
@@ -14,11 +12,13 @@ logger = logging.getLogger(Path(__file__).stem)
 
 
 class AdminWindow:
-    def __init__(self):
+    def __init__(self, host="localhost", port=8080):
+        self.host = host
+        self.port = port
         self.window: Window = webview.create_window('Screencast', "admin.html", width=800, height=600)
 
     def load_html(self, window: Window):
-        server = "http://localhost:8080"
+        server = f"http://{self.host}:{self.port}"
         offer = f"{server}/offer"
 
         window.run_js(f"""
