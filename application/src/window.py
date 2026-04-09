@@ -1,0 +1,42 @@
+import logging
+import sys
+from pathlib import Path
+
+import webview
+from src.server import ScreencastServer
+from src.websocket import ScreencastWebsocketServer
+from webview import Window
+
+log_format = '[%(relativeCreated)d][%(name)s] %(levelname)s - %(message)s'
+logging.basicConfig(level=logging.DEBUG, format=log_format, stream=sys.stdout)
+
+logger = logging.getLogger(Path(__file__).stem)
+
+
+class AdminWindow:
+    def __init__(self):
+        self.window: Window = webview.create_window('Screencast', "admin.html", width=800, height=600)
+
+    def load_html(self, window: Window):
+        server = "http://localhost:8080"
+        offer = f"{server}/offer"
+
+        window.run_js(f"""
+        const container = document.createElement('div');
+        container.innerHTML = `<div id="admin"
+                     data-offer-url="{offer}"
+                     data-server-url="{server}"
+                     data-frame-rate="30"
+                />`;
+        document.body.appendChild(container);        
+        """)
+
+        # Per JavaScript in das Dokument injizieren
+        window.run_js(f"""
+        const script = document.createElement('script');
+        script.src = 'src/static/Admin.js';
+        document.body.appendChild(script);
+        """)
+
+    def run(self):
+        webview.start(self.load_html, self.window, debug=False)
