@@ -5,7 +5,7 @@ from pathlib import Path
 from src.application import Application
 
 log_format = '[%(relativeCreated)d][%(name)s] %(levelname)s - %(message)s'
-logging.basicConfig(level=logging.ERROR, format=log_format, stream=sys.stdout)
+logging.basicConfig(level=logging.INFO, format=log_format, stream=sys.stdout)
 
 logger = logging.getLogger(Path(__file__).stem)
 
