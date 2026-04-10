@@ -1,4 +1,5 @@
 import asyncio
+import json
 import logging
 from pathlib import Path
 
@@ -15,11 +16,8 @@ class ScreencastWebsocketServer:
         self.udp_address = udp_address
         self.udp_port = udp_port
 
-    async def _stream_handler(self, websocket):
-        logger.info("Client connected")
-
-        # Build the FFmpeg command using the fluent interface
-        process = (
+    def get_streamer(self, destination):
+        return (
             ffmpeg
             .input('pipe:',
                    format='webm',
@@ -30,7 +28,7 @@ class ScreencastWebsocketServer:
             # .filter('scale', 1920, 1080, force_original_aspect_ratio='decrease')
             # .filter('pad', 1920, 1080, '(ow-iw)/2', '(oh-ih)/2')
             .output(
-                f'udp://{self.udp_address}:{self.udp_port}',  # Destination IP and Port
+                f'{destination}',  # Destination IP and Port
                 vcodec='libx264',
                 preset='ultrafast',  # Zero encoding delay
                 tune='zerolatency',  # Removes frame reordering (B-frames)
@@ -41,18 +39,39 @@ class ScreencastWebsocketServer:
             .run_async(pipe_stdin=True)
         )
 
+    def get_streamer_destination(self, collection):
+        if len(collection) == 1: return collection[0];
+        return "|".join([f"[f=mpegts]{x}" for x in collection])
+
+    async def _stream_handler(self, websocket):
+        logger.info("Connected")
+
+        process = None
+        destination = None
+
         try:
             async for message in websocket:
-                # Feed the binary message from WebSocket into FFmpeg's stdin
-                process.stdin.write(message)
+                if isinstance(message, str):
+                    destination = self.get_streamer_destination(json.loads(message))
+                    logger.info(f"destination: {destination}")
+
+                if isinstance(message, bytes):
+                    if process is None:
+                        if destination is None: continue
+                        process = self.get_streamer(destination)
+                        logger.info(f"process: {process}")
+
+                    if process is None: continue
+                    process.stdin.write(message)
+
         except websockets.exceptions.ConnectionClosed:
-            logger.info("Client disconnected")
+            logger.info(f"disconnected: {process}")
         except Exception as e:
-            logger.error(f"Error in websocket stream: {e}")
+            logger.error(f"failed: {process} - {e}")
         finally:
-            if process.poll() is None:  # If process is still running, kill it
+            if process.poll() is None:
+                logger.info(f"terminate: {process}")
                 process.terminate()
-                logger.info("FFmpeg process terminated.")
 
     def run(self):
         """
@@ -62,7 +81,7 @@ class ScreencastWebsocketServer:
 
         async def main():
             async with websockets.serve(self._stream_handler, self.host, self.port):
-                logger.info(f"WebSocket server started on ws://{self.host}:{self.port}")
+                logger.info(f"WebSocket ws://{self.host}:{self.port}")
                 await asyncio.Future()  # Keep running indefinitely
 
         asyncio.run(main())

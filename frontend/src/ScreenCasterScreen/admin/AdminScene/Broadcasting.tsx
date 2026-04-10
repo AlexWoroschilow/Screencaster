@@ -16,7 +16,7 @@ import {QRCodeSVG} from 'qrcode.react';
 import {CopyToClipboard} from 'react-copy-to-clipboard';
 
 import "./Broadcasting.scss";
-import {FaRegCopy} from "react-icons/fa";
+import {PiCopySimpleThin} from "react-icons/pi";
 
 
 export interface BroadcastProps {
@@ -169,14 +169,14 @@ export default class Broadcasting<
                                 <Button onClick={this.onClickedClipboard.bind(this)}
                                         fullwidth={true}>
                                     {this?.props?.server} &nbsp;&nbsp;
-                                    <FaRegCopy style={{color: "#000d43"}} size={22}/>
+                                    <PiCopySimpleThin style={{color: "#000d43"}} size={22}/>
                                 </Button>
                             </CopyToClipboard>}
 
                         {(this?.state?.isCopied) && <>
                             <Button fullwidth={true}>
                                 Copied! &nbsp;&nbsp;
-                                <FaRegCopy style={{color: "#000d43"}} size={22}/>
+                                <PiCopySimpleThin style={{color: "#000d43"}} size={22}/>
                             </Button>
                         </>}
 

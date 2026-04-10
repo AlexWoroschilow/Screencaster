@@ -14,6 +14,7 @@ import React from "react";
 import {Button, Columns, Heading} from "react-bulma-components";
 
 import "./Streaming.scss";
+import {PiScreencastThin} from "react-icons/pi";
 
 
 export interface StreamingProps {
@@ -24,6 +25,8 @@ export interface StreamingProps {
 export interface StreamingState {
     websocket?: WebSocket | undefined;
     isCopied?: boolean | undefined;
+    selected?: Array<string>;
+    clients?: Array<string>;
     error?: any;
 }
 
@@ -33,18 +36,45 @@ export default class Streaming<
     State extends StreamingState = StreamingState
 > extends React.Component<Props, State> {
 
+    protected onReceivedClientsRef: (event: CustomEvent) => void;
 
     constructor(props: Props) {
         super(props);
 
         (this.state as StreamingState) = {
+            clients: [],
+            selected: [],
             error: undefined,
         };
+    }
+
+    componentDidMount() {
+        this.onReceivedClientsRef = this.onReceivedClients.bind(this);
+        document.addEventListener("scanner.clients", this.onReceivedClientsRef);
+    }
+
+    onReceivedClients(event: CustomEvent): void {
+        return this.setState({
+            clients: event?.detail || []
+        });
     }
 
     onError(error) {
         return this.setState({
             error: error
+        });
+    }
+
+    onSelectedScreen(screen: string): void {
+        let collection = this?.state?.selected || [];
+        if (collection.includes(screen)) {
+            return;
+        }
+
+        collection.push(screen);
+
+        return this.setState({
+            selected: collection
         });
     }
 
@@ -72,6 +102,10 @@ export default class Streaming<
     }
 
     onStartedStreaming(websocket: WebSocket) {
+
+        (this?.state?.selected?.length > 0) &&
+        websocket.send(JSON.stringify(this.state.selected));
+
         return this.setState({
             websocket: websocket
         });
@@ -84,13 +118,24 @@ export default class Streaming<
                 const socket = new WebSocket(this.props.websocket);
                 socket.onerror = () => reject(new Error(`Failed: ${this.props.websocket}`));
                 socket.onopen = () => resolve(socket);
+                socket.onclose = () => recorder?.stop?.();
 
                 const recorder = new MediaRecorder(stream, {
                     mimeType: 'video/webm; codecs=vp8'
                 });
 
+                const closed: Array<number> = [
+                    WebSocket.CLOSING,
+                    WebSocket.CLOSED
+                ];
+
                 recorder.ondataavailable = (e) => {
-                    (e?.data?.size > 0) && (socket.send(e.data));
+
+                    (closed.includes(socket.readyState)) &&
+                    (recorder?.stop?.());
+
+                    (socket.readyState === WebSocket.OPEN) &&
+                    (e?.data?.size > 0) && (socket?.send?.(e.data));
                 };
 
                 // Start recording and send a chunk every 1 second
@@ -99,6 +144,10 @@ export default class Streaming<
             } catch (err) {
                 return reject(err);
             }
+
+            return this.setState({
+                error: undefined,
+            });
         });
     }
 
@@ -120,10 +169,30 @@ export default class Streaming<
             {(this?.props?.stream) &&
                 <Columns className={"Streaming"}>
                     <Columns.Column size={12} textAlign={"center"}>
-                        <Heading subtitle={true} size={3} m={"0"}>Streaming</Heading>
+
+                        <Heading subtitle={true} size={4} textAlign={"left"} my={1}>
+                            Remote screens
+                        </Heading>
+
+                        {(!this?.state?.clients?.length) && <>
+                            <Heading subtitle={true} size={6} textAlign={"left"} m={"0"}>
+                                Searching...
+                            </Heading>
+                        </>}
+
+                        {(this?.state?.clients?.length > 0) && <>
+                            {this.state.clients.map((item, index) => {
+                                return <Button onClick={() => this.onSelectedScreen(`${item}`)}
+                                               color={`${this?.state?.selected.includes(item) && "info"}`}
+                                               fullwidth={true}>
+                                    <PiScreencastThin size={32}/>
+                                    &nbsp;&nbsp;&nbsp;{item}
+                                </Button>
+                            })}
+                        </>}
                     </Columns.Column>
 
-                    {(this?.state?.error?.message == undefined) &&
+                    {(this?.state?.error?.message == undefined && this?.state?.selected?.length > 0) &&
                         <Columns.Column size={12} textAlign={"center"}>
                             <Button onClick={this.onToggledStart.bind(this)}
                                     fullwidth={true}
@@ -133,7 +202,7 @@ export default class Streaming<
                             </Button>
                         </Columns.Column>}
 
-                    {(this?.state?.error?.message != undefined) &&
+                    {(this?.state?.error?.message != undefined && this?.state?.selected?.length > 0) &&
                         <Columns.Column size={12} textAlign={"center"}>
                             <Heading subtitle={true} size={4}>
                                 {this.state.error.message}

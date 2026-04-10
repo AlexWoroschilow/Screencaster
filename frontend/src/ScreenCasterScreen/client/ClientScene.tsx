@@ -63,6 +63,14 @@ export class ClientScene<
         });
     }
 
+    componentWillUnmount() {
+        (this?.onToggledStartRef != undefined) &&
+        document.removeEventListener("pointerup", this.onToggledStartRef);
+
+        (this?.onFullscreenChangeRef != undefined) &&
+        document.addEventListener("fullscreenchange", this.onFullscreenChangeRef);
+    }
+
     onFullscreenChange(event) {
         return this.setState({
             isFullscreen: this.isFullscreen(),
@@ -198,7 +206,7 @@ export class ClientScene<
                         <Heading subtitle={true} size={3}>Click or tap to begin</Heading>}
                 </div>
 
-                <video ref={this.videoRef} autoPlay playsInline />
+                <video ref={this.videoRef} autoPlay playsInline/>
             </div>
         );
     }

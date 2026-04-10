@@ -4,6 +4,7 @@ import signal
 import socket
 import sys
 import threading
+import time
 from pathlib import Path
 
 import netifaces
@@ -20,8 +21,10 @@ logger = logging.getLogger(Path(__file__).stem)
 
 class Application:
     def __init__(self):
-        for item in self.ips():
-            print(item)
+        self._scanner = Scanner(host=self.ip(), port=3702)
+        self._http = ScreencastServer(host=self.ip(), port=8080)
+        self._websocket = ScreencastWebsocketServer(host=self.ip(), udp_address=self.ip(), port=3000)
+        self._admin_window = None
 
     def ip(self):
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -44,16 +47,28 @@ class Application:
                     yield (interface, link['addr'],)
 
     def http(self):
-        server = ScreencastServer(host=self.ip(), port=8080)
-        server.run()
+        if self._http is None:
+            return None
+        self._http.run()
 
     def websocket(self):
-        server = ScreencastWebsocketServer(host=self.ip(), udp_address=self.ip(), port=3000)
-        server.run()
+        if self._websocket is None:
+            return None
+        self._websocket.run()
 
     def scanner(self):
-        scanner = Scanner()
-        scanner.run()
+        if self._scanner is None:
+            return None
+        self._scanner.run()
+
+    def scanner_results(self):
+        while True:
+            if self._admin_window is None: continue
+            if self._scanner is None: continue
+            self._admin_window.set_clients(
+                self._scanner.clients
+            )
+            time.sleep(2)
 
     def tray(self):
         image = Image.open(os.path.abspath("static/images/icon.png"))
@@ -77,7 +92,8 @@ class Application:
         threading.Thread(target=self.http, daemon=True).start()
         threading.Thread(target=self.websocket, daemon=True).start()
         threading.Thread(target=self.scanner, daemon=True).start()
+        threading.Thread(target=self.scanner_results, daemon=True).start()
         threading.Thread(target=self.tray, daemon=True).start()
 
-        main_window = AdminWindow(host=self.ip(), port=8080)
-        main_window.run()
+        self._admin_window = AdminWindow(host=self.ip(), port=8080)
+        self._admin_window.run()

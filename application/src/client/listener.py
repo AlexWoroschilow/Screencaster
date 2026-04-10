@@ -44,16 +44,12 @@ class Listener:
                     try:
                         data, addr = server.recvfrom(1024)
                         message = data.decode('utf-8', errors='ignore')
-                        logger.info(f"[{addr[0]}] Recv: {message}")
+                        logger.info(f"{addr[0]} <= : {message}")
 
                         # Answer to the broadcast message
-                        response = json.dumps({
-                            "ip": self.get_local_ip(),
-                            "port": self.port,
-                            "status": "active"
-                        })
+                        response = json.dumps(f"udp://{self.get_local_ip()}:1234")
                         server.sendto(response.encode('utf-8'), addr)
-                        logger.info(f"Sent response to {addr[0]}")
+                        logger.info(f"{addr[0]} => : {response}")
 
                     except socket.timeout:
                         continue

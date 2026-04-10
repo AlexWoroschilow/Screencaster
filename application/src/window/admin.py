@@ -1,5 +1,7 @@
+import json
 import logging
 from pathlib import Path
+from typing import List
 
 import webview
 from webview import Window
@@ -11,12 +13,18 @@ class AdminWindow:
     def __init__(self, host="localhost", port=8080):
         self.host = host
         self.port = port
-        self.window: Window \
-            = webview.create_window(
+        self.window: Window = webview.create_window(
             'Screencast',
             "static/Admin.html",
             width=800,
             height=600)
+
+    def set_clients(self, collection: List[str]):
+        clients_json = json.dumps(collection)
+
+        self.window.run_js(f"""
+            document.dispatchEvent(new CustomEvent('scanner.clients', {{detail:{clients_json}}}));
+        """)
 
     def load_html(self, window: Window):
         server = f"http://{self.host}:{self.port}"
