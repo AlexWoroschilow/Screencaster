@@ -6,5 +6,5 @@ aiortc
 Pillow
 pystray
 pywebview
-qtpy
 netifaces
+qtpy

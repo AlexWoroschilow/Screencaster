@@ -6,11 +6,23 @@ html {
   .AdminScene {
     height: 100vh;
     width: 100%;
+    display: flex;
+    flex: 1;
+    flex-direction: column;
 
     .AdminSceneStream {
       background-color: #000000;
+      height: 100vh;
       max-width: 480px;
-      height: auto;
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      video {
+        width: 100%;
+        height: auto;
+      }
     }
 
     .AdminSceneHeader {
@@ -18,10 +30,10 @@ html {
     }
 
     .AdminSceneToolbox {
+      height: 100vh;
 
     }
   }
 
 
 }
-

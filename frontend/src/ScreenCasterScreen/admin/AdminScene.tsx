@@ -17,6 +17,8 @@ import {Button, Columns, Heading} from "react-bulma-components";
 import Broadcasting, {BroadcastProps} from "./AdminScene/Broadcasting";
 import Streaming, {StreamingProps} from "./AdminScene/Streaming";
 import {PiAppWindowLight, PiMonitorLight} from "react-icons/pi";
+import {Simulate} from "react-dom/test-utils";
+import ended = Simulate.ended;
 
 
 export type AdminSceneProps<CustomConfig extends Record<any, any> = Record<any, any>> =
@@ -69,19 +71,19 @@ export class AdminScene<
     }
 
     onClickedSource(surface: Surface): void {
-        if (surface == this?.state?.surface) {
+        let tracks = undefined;
+        (this?.state?.stream != undefined) &&
+        (tracks = this.state.stream.getTracks());
+
+        if (surface == this?.state?.surface
+            && this?.state?.stream) {
             return;
         }
 
-        if (this?.state?.stream) {
-            // Holt alle Video- und Audio-Spuren
-            const tracks = this.state.stream.getTracks();
-
-            (tracks?.length) &&
-            tracks.forEach(track => {
-                track?.stop?.(); // Beendet die Hardware-Nutzung (Kamera/Screen-Capture)
-            });
-        }
+        (tracks?.forEach != undefined) &&
+        tracks.forEach(track => {
+            track?.stop?.(); // Beendet die Hardware-Nutzung (Kamera/Screen-Capture)
+        });
 
         (this?.broadcastingRef?.current != undefined) &&
         this.broadcastingRef.current.doStopBroadcast().then(() => {
@@ -131,26 +133,48 @@ export class AdminScene<
         });
     }
 
+    onEndedTrack() {
+
+        let tracks = undefined;
+        (this?.state?.stream != undefined) &&
+        (tracks = this.state.stream.getTracks());
+
+        (tracks?.forEach != undefined) &&
+        tracks.forEach(track => {
+            track?.stop?.();
+        });
+
+        return this.setState({
+            stream: undefined
+        });
+    }
+
     async doStreamStart(surface: Surface) {
-        return new Promise(async (resolve, reject) => {
+        return new Promise((resolve, reject) => {
 
             try {
-                const stream = await navigator.mediaDevices
+                navigator.mediaDevices
                     .getDisplayMedia({
                         video: {
                             cursor: "always",
                             displaySurface: surface,
                             selfBrowserSurface: "exclude",
-                            frameRate: {
-                                ideal: this.props.frameRate,
-                                max: this.props.frameRate
-                            },
                         },
                         audio: false
-                    } as DisplayMediaStreamOptions);
+                    } as DisplayMediaStreamOptions)
+                    .then((stream) => {
+                        let tracks = stream.getTracks();
 
-                return resolve(stream)
+                        (tracks?.forEach != undefined) &&
+                        tracks.forEach((track) => {
+                            track.onended = this.onEndedTrack.bind(this);
+                        });
 
+                        return resolve(stream);
+                    })
+                    .catch((err) => {
+                        return reject(err)
+                    });
 
             } catch (err) {
                 return reject(err)
@@ -163,27 +187,21 @@ export class AdminScene<
 
         return <>
             <Columns className={"AdminScene"} centered={false} m={"0"}>
-                <Columns.Column className={"AdminSceneStream"} size={6}>
-                    <video ref={this.videoRef}
-                           autoPlay
-                           playsInline
-                           style={{
-                               width: "100%",
-                               height: "auto"
-                           }}/>
+                <Columns.Column className={"AdminSceneStream"} size={12}>
+                    <video ref={this.videoRef} autoPlay playsInline/>
                 </Columns.Column>
-                <Columns.Column className={"AdminSceneToolbox"} size={6}>
+                <Columns.Column className={"AdminSceneToolbox"} size={12}>
                     <Columns>
 
                         <Columns.Column size={12}>
                             <Button.Group>
                                 <Button onClick={() => this.onClickedSource(Surface.monitor)}
-                                        color={`${this?.state?.surface == Surface.monitor && "info"}`}>
+                                        color={`${(this?.state?.stream != undefined && this?.state?.surface == Surface.monitor) && "info"}`}>
                                     <PiMonitorLight size={32}/>
                                     Screen
                                 </Button>
                                 <Button onClick={() => this.onClickedSource(Surface.window)}
-                                        color={`${this?.state?.surface == Surface.window && "info"}`}>
+                                        color={`${(this?.state?.stream != undefined && this?.state?.surface == Surface.window) && "info"}`}>
                                     <PiAppWindowLight size={32}/>
                                     Window
                                 </Button>
@@ -196,8 +214,7 @@ export class AdminScene<
                                     {this.state.error.message}
                                 </Heading>
                                 <Button onClick={this.componentDidMount.bind(this)}
-                                        color="success"
-                                        renderAs="span">
+                                        color="info">
                                     Try again
                                 </Button>
                             </Columns.Column>}
