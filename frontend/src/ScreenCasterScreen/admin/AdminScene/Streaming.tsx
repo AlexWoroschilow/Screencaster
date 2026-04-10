@@ -121,7 +121,8 @@ export default class Streaming<
                 socket.onclose = () => recorder?.stop?.();
 
                 const recorder = new MediaRecorder(stream, {
-                    mimeType: 'video/webm; codecs=vp8'
+                    mimeType: 'video/webm; codecs=vp8',
+                    videoBitsPerSecond: 1000000
                 });
 
                 const closed: Array<number> = [
@@ -138,7 +139,6 @@ export default class Streaming<
                     (e?.data?.size > 0) && (socket?.send?.(e.data));
                 };
 
-                // Start recording and send a chunk every 1 second
                 recorder.start(1000 / 30);
 
             } catch (err) {

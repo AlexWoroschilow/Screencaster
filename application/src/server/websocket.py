@@ -19,23 +19,14 @@ class ScreencastWebsocketServer:
     def get_streamer(self, destination):
         return (
             ffmpeg
-            .input('pipe:',
-                   format='webm',
-                   codec='vp8',
-                   probesize=32,  # Minimum data for format detection
-                   analyzeduration=0  # Skip stream analysis
-                   )
+            .input('pipe:', format='webm', codec='vp8')
             # .filter('scale', 1920, 1080, force_original_aspect_ratio='decrease')
             # .filter('pad', 1920, 1080, '(ow-iw)/2', '(oh-ih)/2')
-            .output(
-                f'{destination}',  # Destination IP and Port
-                vcodec='libx264',
-                preset='ultrafast',  # Zero encoding delay
-                tune='zerolatency',  # Removes frame reordering (B-frames)
-                format='mpegts',
-                flush_packets=1,  # Send packets to UDP immediately
-                bufsize='100k'  # Small buffer to prevent backlog
-            )
+            .output(f'{destination}?pkt_size=1316',  # Destination IP and Port
+                    vcodec='libx264',
+                    preset='ultrafast',  # Zero encoding delay
+                    tune='zerolatency',  # Removes frame reordering (B-frames)
+                    format='mpegts')
             .run_async(pipe_stdin=True)
         )
 
