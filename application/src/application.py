@@ -12,6 +12,7 @@ from PIL import Image
 
 from .server.http import ScreencastServer
 from .server.websocket import ScreencastWebsocketServer
+from .server.scanner import Scanner
 from .window.admin import AdminWindow
 
 logger = logging.getLogger(Path(__file__).stem)
@@ -50,6 +51,10 @@ class Application:
         server = ScreencastWebsocketServer(host=self.ip(), udp_address=self.ip(), port=3000)
         server.run()
 
+    def scanner(self):
+        scanner = Scanner()
+        scanner.run()
+
     def tray(self):
         image = Image.open(os.path.abspath("static/images/icon.png"))
 
@@ -68,9 +73,10 @@ class Application:
         signal.signal(signal.SIGINT, self.signal)
         signal.signal(signal.SIGTERM, self.signal)
 
-        # Start aiohttp server in a separate thread
+        # Start servers in separate threads
         threading.Thread(target=self.http, daemon=True).start()
         threading.Thread(target=self.websocket, daemon=True).start()
+        threading.Thread(target=self.scanner, daemon=True).start()
         threading.Thread(target=self.tray, daemon=True).start()
 
         main_window = AdminWindow(host=self.ip(), port=8080)

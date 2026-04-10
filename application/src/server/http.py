@@ -7,6 +7,8 @@ from aiohttp import web
 from aiortc import RTCPeerConnection, RTCSessionDescription
 from aiortc.contrib.media import MediaRelay
 
+logger = logging.getLogger(Path(__file__).stem)
+
 
 class ScreencastServer:
     def __init__(self, host="localhost", port=8080):
@@ -20,7 +22,7 @@ class ScreencastServer:
         params = await request.json()
         offer = RTCSessionDescription(sdp=params["sdp"], type=params["type"])
         role = params.get("role")
-        logging.info(f"offer: {role}")
+        logger.info(f"offer: {role}")
 
         pc = RTCPeerConnection()
         self.pcs.add(pc)
@@ -29,11 +31,11 @@ class ScreencastServer:
         def on_track(track):
             if role == "broadcaster":
                 self.relay_track = track
-                logging.info(f"Broadcaster track received: {track.kind}")
+                logger.info(f"Broadcaster track received: {track.kind}")
 
         @pc.on("connectionstatechange")
         async def on_connectionstatechange():
-            logging.info(f"Connection state changed: {pc.connectionState}")
+            logger.info(f"Connection state changed: {pc.connectionState}")
             if pc.connectionState in ["failed", "closed"]:
                 await pc.close()
                 self.pcs.discard(pc)
@@ -44,9 +46,9 @@ class ScreencastServer:
         if role == "viewer":
             if self.relay_track:
                 pc.addTrack(self.relay.subscribe(self.relay_track))
-                logging.info("Added relayed track to viewer")
+                logger.info("Added relayed track to viewer")
             else:
-                logging.warning("Viewer connected but no broadcaster track available")
+                logger.warning("Viewer connected but no broadcaster track available")
 
         answer = await pc.createAnswer()
         await pc.setLocalDescription(answer)
@@ -82,7 +84,7 @@ class ScreencastServer:
         app.router.add_options("/offer", self.handle_options)
 
         static_path = os.path.join(os.getcwd(), 'static')
-        logging.info(f"!!!{static_path}")
+        logger.info(f"!!!{static_path}")
 
         app.router.add_static('/static/', path=static_path, name='static')
 

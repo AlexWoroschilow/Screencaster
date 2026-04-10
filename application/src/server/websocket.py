@@ -1,8 +1,11 @@
-import logging
-import sys
 import asyncio
+import logging
+from pathlib import Path
+
 import ffmpeg
 import websockets
+
+logger = logging.getLogger(Path(__file__).stem)
 
 
 class ScreencastWebsocketServer:
@@ -11,10 +14,9 @@ class ScreencastWebsocketServer:
         self.port = port
         self.udp_address = udp_address
         self.udp_port = udp_port
-        self.logger = logging.getLogger(self.__class__.__name__)
 
     async def _stream_handler(self, websocket):
-        self.logger.info("Client connected")
+        logger.info("Client connected")
 
         # Build the FFmpeg command using the fluent interface
         process = (
@@ -44,13 +46,13 @@ class ScreencastWebsocketServer:
                 # Feed the binary message from WebSocket into FFmpeg's stdin
                 process.stdin.write(message)
         except websockets.exceptions.ConnectionClosed:
-            self.logger.info("Client disconnected")
+            logger.info("Client disconnected")
         except Exception as e:
-            self.logger.error(f"Error in websocket stream: {e}")
+            logger.error(f"Error in websocket stream: {e}")
         finally:
             if process.poll() is None:  # If process is still running, kill it
                 process.terminate()
-                self.logger.info("FFmpeg process terminated.")
+                logger.info("FFmpeg process terminated.")
 
     def run(self):
         """
@@ -60,7 +62,7 @@ class ScreencastWebsocketServer:
 
         async def main():
             async with websockets.serve(self._stream_handler, self.host, self.port):
-                self.logger.info(f"WebSocket server started on ws://{self.host}:{self.port}")
+                logger.info(f"WebSocket server started on ws://{self.host}:{self.port}")
                 await asyncio.Future()  # Keep running indefinitely
 
         asyncio.run(main())
