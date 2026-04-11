@@ -18,7 +18,7 @@ import Broadcasting, {BroadcastProps} from "./AdminScene/Broadcasting";
 import Streaming, {StreamingProps} from "./AdminScene/Streaming";
 import {PiAppWindowLight, PiMonitorLight} from "react-icons/pi";
 import {Simulate} from "react-dom/test-utils";
-import ended = Simulate.ended;
+import {IoCloseOutline} from "react-icons/io5";
 
 
 export type AdminSceneProps<CustomConfig extends Record<any, any> = Record<any, any>> =
@@ -70,20 +70,24 @@ export class AdminScene<
         });
     }
 
-    onClickedSource(surface: Surface): void {
+    doCloseStream(stream: MediaStream) {
         let tracks = undefined;
-        (this?.state?.stream != undefined) &&
-        (tracks = this.state.stream.getTracks());
-
-        if (surface == this?.state?.surface
-            && this?.state?.stream) {
-            return;
-        }
+        (stream != undefined) &&
+        (tracks = stream.getTracks());
 
         (tracks?.forEach != undefined) &&
-        tracks.forEach(track => {
+        tracks.forEach((track: MediaStreamTrack) => {
             track?.stop?.(); // Beendet die Hardware-Nutzung (Kamera/Screen-Capture)
         });
+
+        return this.setState({
+            stream: undefined
+        });
+    }
+
+    onClickedSource(surface: Surface): void {
+        (this?.state?.stream != undefined) &&
+        this.doCloseStream(this?.state?.stream);
 
         (this?.broadcastingRef?.current != undefined) &&
         this.broadcastingRef.current.doStopBroadcast().then(() => {
@@ -117,6 +121,14 @@ export class AdminScene<
         });
     }
 
+    onClickedClose(event: any): void {
+        (this?.state?.stream != undefined) &&
+        this.doCloseStream(this?.state?.stream);
+
+        return this.setState({
+            surface: undefined
+        });
+    }
 
     onError(error) {
         return this.setState({
@@ -191,9 +203,8 @@ export class AdminScene<
                     <video ref={this.videoRef} autoPlay playsInline/>
                 </Columns.Column>
                 <Columns.Column className={"AdminSceneToolbox"} size={12}>
-                    <Columns>
-
-                        <Columns.Column size={12}>
+                    <Columns centered={true}>
+                        <Columns.Column size={12} textAlign={"center"}>
                             <Button.Group>
                                 <Button onClick={() => this.onClickedSource(Surface.monitor)}
                                         color={`${(this?.state?.stream != undefined && this?.state?.surface == Surface.monitor) && "info"}`}>
@@ -204,6 +215,11 @@ export class AdminScene<
                                         color={`${(this?.state?.stream != undefined && this?.state?.surface == Surface.window) && "info"}`}>
                                     <PiAppWindowLight size={32}/>
                                     Window
+                                </Button>
+                                <Button onClick={this.onClickedClose.bind(this)}
+                                        disabled={this?.state?.stream == undefined}
+                                        color={"danger"} outlined={true}>
+                                    <IoCloseOutline size={32}/>
                                 </Button>
                             </Button.Group>
                         </Columns.Column>
@@ -218,7 +234,6 @@ export class AdminScene<
                                     Try again
                                 </Button>
                             </Columns.Column>}
-
 
                         <Columns.Column size={12}>
                             <Broadcasting {...this.props}

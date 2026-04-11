@@ -159,7 +159,7 @@ export default class Broadcasting<
                     <Columns.Column size={12} textAlign={"center"}>
                         <QRCodeSVG
                             value={this?.props?.server}
-                            size={270}
+                            size={320}
                             bgColor={"#ffffff"}
                             fgColor={"#000000"}
                             level={"L"}

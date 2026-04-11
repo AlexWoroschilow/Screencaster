@@ -16,8 +16,8 @@ class AdminWindow:
         self.window: Window = webview.create_window(
             'Screencast',
             "static/Admin.html",
-            width=800,
-            height=600)
+            width=835,
+            height=700)
 
     def set_clients(self, collection: List[str]):
         clients_json = json.dumps(collection)
