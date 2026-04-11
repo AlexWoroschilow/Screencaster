@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import os
 from pathlib import Path
 
 import ffmpeg
@@ -27,7 +28,7 @@ class ScreencastWebsocketServer:
                     preset='ultrafast',  # Zero encoding delay
                     tune='zerolatency',  # Removes frame reordering (B-frames)
                     format='mpegts')
-            .run_async(pipe_stdin=True)
+            .run_async(pipe_stdin=True, cmd=os.environ.get("FFMPEG_BINARY", "ffmpeg"), quiet=False)
         )
 
     def get_streamer_destination(self, collection):
