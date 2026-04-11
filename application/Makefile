@@ -28,9 +28,17 @@ setup:
 	python-appimage install appimagetool
 
 build: setup
-	. ./venv/bin/activate
+
+	mkdir -p $(PWD)/build/ffmpeg
+	wget -O $(PWD)/build/ffmpeg.tar.xz https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz
+	tar -xf $(PWD)/build/ffmpeg.tar.xz -C $(PWD)/build/ffmpeg --strip-components=1
+	rm -f $(PWD)/build/ffmpeg.tar.xz
+
 	mkdir -p $(PWD)/build/vendors
-	python3 -m pip install -r $(PWD)/requirements.txt --ignore-installed --target=$(PWD)/build/vendors
+
+	python3 -m pip install -r $(PWD)/requirements.txt \
+		--target=$(PWD)/build/vendors \
+		--ignore-installed
 
 	cp -r static/images/icon.png $(PWD)/build/
 	cp main.py $(PWD)/build/
@@ -45,7 +53,7 @@ build: setup
 	echo 'export PYTHONPATH=$${PYTHONPATH}' >> $(APPRUN)
 	echo 'cd $${APPDIR}' >> $(APPRUN)
 	echo '"$${PYTHON3}" $${APPDIR}/main.py' >> $(APPRUN)
-	echo chmod +x $(APPRUN)
+	chmod +x $(APPRUN)
 
 	echo '[Desktop Entry]' > $(DESKTOP)
 	echo 'Type=Application' >> $(DESKTOP)
