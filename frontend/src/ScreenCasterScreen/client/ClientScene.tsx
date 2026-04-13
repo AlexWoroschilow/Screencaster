@@ -35,6 +35,7 @@ export class ClientScene<
     protected videoRef: React.RefObject<HTMLVideoElement>;
     protected onToggledStartRef: () => void;
     protected onFullscreenChangeRef: () => void;
+    protected intervalVideSync: ReturnType<typeof setInterval> | undefined;
 
     constructor(props: Props) {
         super(props);
@@ -57,6 +58,22 @@ export class ClientScene<
         this.onFullscreenChangeRef = this.onFullscreenChange.bind(this);
         document.addEventListener("fullscreenchange", this.onFullscreenChangeRef);
 
+
+        const videoElement = this?.videoRef?.current;
+
+        (videoElement != undefined) &&
+        (this.intervalVideSync = setInterval(() => {
+            if (videoElement?.buffered?.length <= 0) {
+                return;
+            }
+
+            const drift = videoElement.buffered.end(0) - videoElement.currentTime;
+
+            (drift > 0.1) &&
+            (videoElement.currentTime = videoElement.buffered.end(0));
+
+        }, 1000));
+
         return this.setState({
             isFullscreen: this.isFullscreen(),
             error: undefined
@@ -64,6 +81,10 @@ export class ClientScene<
     }
 
     componentWillUnmount() {
+
+        (this?.intervalVideSync != undefined) &&
+        (clearInterval(this.intervalVideSync));
+
         (this?.onToggledStartRef != undefined) &&
         document.removeEventListener("pointerup", this.onToggledStartRef);
 
