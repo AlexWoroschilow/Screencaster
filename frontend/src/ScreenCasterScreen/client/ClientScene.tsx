@@ -136,10 +136,24 @@ export class ClientScene<
 
             try {
 
-                const pc = new RTCPeerConnection();
+                const pc = new RTCPeerConnection({
+                    iceServers: [], // Force local-only if on the same LAN
+                    bundlePolicy: 'max-bundle', // Bundle everything into one port
+                    rtcpMuxPolicy: 'require'
+                });
 
                 pc.ontrack = (event) => {
-                    return resolve({peer: pc, stream: event.streams[0]})
+                    const receiver = pc.getReceivers().forEach((receiver: RTCRtpReceiver) => {
+                        if (receiver?.track?.kind === 'video') return;
+
+                        ('playoutDelayHint' in receiver) &&
+                        (receiver.playoutDelayHint = 0);
+                    });
+
+                    return resolve({
+                        stream: event.streams[0],
+                        peer: pc
+                    })
                 };
 
                 pc.addTransceiver('video', {direction: 'recvonly'});
@@ -206,7 +220,14 @@ export class ClientScene<
                         <Heading subtitle={true} size={3}>Click or tap to begin</Heading>}
                 </div>
 
-                <video ref={this.videoRef} autoPlay playsInline/>
+                <video ref={this.videoRef}
+                       autoPlay
+                       playsInline
+                       muted
+                       preload="none"
+                       disablePictureInPicture
+                       disableRemotePlayback
+                />
             </div>
         );
     }

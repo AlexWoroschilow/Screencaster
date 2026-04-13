@@ -94,6 +94,11 @@ export default class Broadcasting<
                     pc.addTrack(track, stream);
                 });
 
+                const sender = pc.getSenders().find(s => s.track.kind === 'video');
+                const parameters = sender.getParameters();
+                parameters.degradationPreference = 'maintain-framerate';
+                await sender.setParameters(parameters);
+
                 const offer = await pc.createOffer();
                 await pc.setLocalDescription(offer);
 
@@ -120,8 +125,6 @@ export default class Broadcasting<
     async doStopBroadcast(peer: RTCPeerConnection = this?.state?.peer): Promise<void> {
         return new Promise(async (resolve, reject) => {
             try {
-
-                console.info("??", peer);
 
                 if (peer == undefined) {
                     return resolve()

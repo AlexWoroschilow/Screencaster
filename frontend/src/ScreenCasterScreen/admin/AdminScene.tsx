@@ -171,14 +171,26 @@ export class AdminScene<
                             cursor: "always",
                             displaySurface: surface,
                             selfBrowserSurface: "exclude",
+                            frameRate: {ideal: 60, max: 60}
                         },
-                        audio: false
+                        audio: false,
+                        // audio: {
+                        //     echoCancellation: false,
+                        //     noiseSuppression: false,
+                        //     autoGainControl: false,
+                        //     latency: 0 // Suggests the lowest possible latency to the OS
+                        // }
                     } as DisplayMediaStreamOptions)
                     .then((stream) => {
                         let tracks = stream.getTracks();
 
                         (tracks?.forEach != undefined) &&
-                        tracks.forEach((track) => {
+                        tracks.forEach((track: MediaStreamTrack) => {
+
+                            (track?.kind == "video" && 'contentHint' in track) &&
+                            (track.contentHint = 'motion');
+
+
                             track.onended = this.onEndedTrack.bind(this);
                         });
 
