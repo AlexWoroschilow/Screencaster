@@ -8,19 +8,24 @@ html, body {
 }
 
 .ClientScene {
+  background: radial-gradient(89% 99% at 50% 50%, #E8EDF6 5%, #c0c0c0 100%);
   position: relative;
   width: 100vw;
   height: 100vh;
   margin: 0;
   padding: 0;
 
-  video {
-    width: 100%;
-    height: 100%;
-    background: radial-gradient(89% 99% at 50% 50%, #E8EDF6 5%, #c0c0c0 100%);
-    object-fit: cover;
-    display: block;
-    margin: 0;
+  video-js {
+    display: contents;
+
+    video {
+      background: radial-gradient(89% 99% at 50% 50%, #E8EDF6 5%, #c0c0c0 100%);
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+      margin: 0;
+    }
   }
 
   .centered {

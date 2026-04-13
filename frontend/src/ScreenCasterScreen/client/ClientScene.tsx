@@ -14,6 +14,7 @@
 import React from "react";
 import "./ClientScene.scss";
 import {Heading} from "react-bulma-components";
+import {VideoPlayer} from "./ClientScene/VideoPlayer";
 
 
 export interface ClientSceneProps {
@@ -141,7 +142,8 @@ export class ClientScene<
 
     onStartedBroadcast(response: { peer: RTCPeerConnection, stream: MediaStream }) {
         // @ts-ignore
-        this.videoRef.current.srcObject = response.stream;
+        (this?.videoRef?.current != undefined) &&
+        (this.videoRef.current.srcObject = response.stream);
 
         (!this.isFullscreen()) &&
         this.doFullscreenStart();
@@ -151,6 +153,7 @@ export class ClientScene<
             peer: response.peer,
         });
     }
+
 
     async doStartBroadcast(): Promise<{ peer: RTCPeerConnection, stream: MediaStream }> {
         return new Promise(async (resolve, reject) => {
@@ -164,15 +167,18 @@ export class ClientScene<
                 });
 
                 pc.ontrack = (event) => {
-                    const receiver = pc.getReceivers().forEach((receiver: RTCRtpReceiver) => {
+                    pc.getReceivers().forEach((receiver: RTCRtpReceiver) => {
                         if (receiver?.track?.kind === 'video') return;
 
                         ('playoutDelayHint' in receiver) &&
                         (receiver.playoutDelayHint = 0);
                     });
 
+                    const stream: MediaStream = event.streams[0];
+                    if (stream == undefined) return reject(new Error("Missing stream"))
+
                     return resolve({
-                        stream: event.streams[0],
+                        stream: stream,
                         peer: pc
                     })
                 };
@@ -241,14 +247,14 @@ export class ClientScene<
                         <Heading subtitle={true} size={3}>Click or tap to begin</Heading>}
                 </div>
 
-                <video ref={this.videoRef}
-                       autoPlay
-                       playsInline
-                       muted
-                       preload="none"
-                       disablePictureInPicture
-                       disableRemotePlayback
-                />
+                {(this?.state?.stream != undefined) &&
+                    <VideoPlayer
+                        options={{
+                            controls: false,
+                            autoplay: true
+                        }}
+                        stream={this.state.stream}
+                    />}
             </div>
         );
     }

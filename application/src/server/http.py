@@ -80,12 +80,8 @@ class ScreencastServer:
 
         app = web.Application()
         app.router.add_get("/", lambda r: web.FileResponse("static/Client.html"))
-        app.router.add_post("/offer", self.offer)
+        app.router.add_static('/static/', path=os.path.join(os.getcwd(), 'static'), name='static')
         app.router.add_options("/offer", self.handle_options)
-
-        static_path = os.path.join(os.getcwd(), 'static')
-        logger.info(f"!!!{static_path}")
-
-        app.router.add_static('/static/', path=static_path, name='static')
+        app.router.add_post("/offer", self.offer)
 
         web.run_app(app, host=self.host, port=self.port, handle_signals=False)

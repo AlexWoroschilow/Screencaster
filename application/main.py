@@ -1,12 +1,9 @@
 import logging
+import os
 import sys
 from pathlib import Path
 
 from src.application import Application
-
-import os
-import site
-import sysconfig
 
 log_format = '[%(relativeCreated)d][%(name)s] %(levelname)s - %(message)s'
 logging.basicConfig(level=logging.INFO, format=log_format, stream=sys.stdout)

@@ -19,6 +19,7 @@ import Streaming, {StreamingProps} from "./AdminScene/Streaming";
 import {PiAppWindowLight, PiMonitorLight} from "react-icons/pi";
 import {Simulate} from "react-dom/test-utils";
 import {IoCloseOutline} from "react-icons/io5";
+import {SilentAudio} from "./AdminScene/SilentAudio";
 
 
 export type AdminSceneProps<CustomConfig extends Record<any, any> = Record<any, any>> =
@@ -138,7 +139,8 @@ export class AdminScene<
 
     onStartedStream(stream: MediaStream) {
         // @ts-ignore
-        this.videoRef.current.srcObject = stream;
+        (this?.videoRef?.current != undefined) &&
+        (this.videoRef.current.srcObject = stream);
 
         return this.setState({
             stream: (stream as MediaStream)
@@ -190,7 +192,6 @@ export class AdminScene<
                             (track?.kind == "video" && 'contentHint' in track) &&
                             (track.contentHint = 'motion');
 
-
                             track.onended = this.onEndedTrack.bind(this);
                         });
 
@@ -210,6 +211,7 @@ export class AdminScene<
     render() {
 
         return <>
+            <SilentAudio/>
             <Columns className={"AdminScene"} centered={false} m={"0"}>
                 <Columns.Column className={"AdminSceneStream"} size={12}>
                     <video ref={this.videoRef} autoPlay playsInline/>

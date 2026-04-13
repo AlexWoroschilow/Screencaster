@@ -1,72 +1,66 @@
 import logging
-import os
 import sys
-
-system_paths = [
-    f"/usr/lib/python{sys.version_info.major}.{sys.version_info.minor}/dist-packages",
-    f"/usr/lib/python{sys.version_info.major}.{sys.version_info.minor}/site-packages",
-]
-
-[sys.path.append(path) if os.path.exists(path) else "" for path in system_paths]
-
-# 2. Allow the OS to find system C-libraries (.so files)
-# This is critical for hardware access (GStreamer, Drivers)
-current_ld = os.environ.get("LD_LIBRARY_PATH", "")
-os.environ["LD_LIBRARY_PATH"] = f"/usr/lib/x86_64-linux-gnu:/usr/lib64:{current_ld}"
-
-from PySide6.QtCore import QUrl
-from PySide6.QtWebEngineCore import QWebEnginePage, QWebEngineSettings
-from PySide6.QtWebEngineWidgets import QWebEngineView
-from PySide6.QtWidgets import QApplication, QMainWindow
+from pathlib import Path
 
 log_format = '[%(relativeCreated)d][%(name)s] %(levelname)s - %(message)s'
 logging.basicConfig(level=logging.DEBUG, format=log_format, stream=sys.stdout)
 
-sys.argv.append("--enable-features=WebRTCPipeWireCapturer")
-sys.argv.append("--use-fake-ui-for-media-stream")
-sys.argv.append("--no-sandbox")
+logger = logging.getLogger(Path(__file__).stem)
 
+import requests
+import gi
 
-class MainWindow(QMainWindow):
-    def __init__(self):
-        super().__init__()
+gi.require_version('Gst', '1.0')
+gi.require_version('GstWebRTC', '1.0')
+gi.require_version('GstSdp', '1.0')
+from gi.repository import Gst, GstWebRTC, GstSdp
 
-        self.setWindowTitle("PySide6 Webview")
-        self.resize(1024, 768)
+Gst.init(None)
 
-        self.browser = QWebEngineView()
+# 1. Pipeline definieren
+pipeline_str = "webrtcbin name=receiver videoconvert ! autovideosink"
+pipeline = Gst.parse_launch(pipeline_str)
+webrtc = pipeline.get_by_name('receiver')
 
-        # Enable necessary settings for WebRTC and screen capture
-        settings = self.browser.settings()
-        settings.setAttribute(QWebEngineSettings.LocalContentCanAccessRemoteUrls, True)
-        settings.setAttribute(QWebEngineSettings.LocalContentCanAccessFileUrls, True)
-        settings.setAttribute(QWebEngineSettings.ScreenCaptureEnabled, True)
+def on_offer_set(promise, user_data):
+    # Sobald das Remote-Offer gesetzt ist, erstellen wir eine Answer
+    promise = Gst.Promise.new_with_change_func(on_answer_created, None)
+    webrtc.emit('create-answer', None, promise)
 
-        # Handle permission requests (e.g., for getDisplayMedia)
-        self.browser.page().featurePermissionRequested.connect(self.handle_permission_request)
+def on_answer_created(promise, user_data):
+    reply = promise.get_reply()
+    answer = reply.get_value('answer')
+    webrtc.emit('set-local-description', answer, None)
+    # HINWEIS: Falls der Server eine Antwort erwartet, müsste die 'answer'
+    # per HTTP POST an den Server zurückgeschickt werden.
 
-        # Get the absolute path to index.html
-        file_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "index.html"))
-        local_url = QUrl.fromLocalFile(file_path)
+def on_pad_added(element, pad):
+    if not pad.has_current_caps(): return
+    decodebin = Gst.ElementFactory.make('decodebin')
+    decodebin.connect('pad-added', lambda _, p: p.link(pipeline.get_by_name('autovideosink').get_static_pad('sink')))
+    pipeline.add(decodebin)
+    decodebin.sync_state_with_parent()
+    element.link(decodebin)
 
-        # self.browser.setUrl(local_url)
-        self.browser.setUrl("https://webrtc.github.io/samples/src/content/getusermedia/getdisplaymedia/")
-        self.setCentralWidget(self.browser)
+# Signale verbinden
+webrtc.connect('pad-added', on_pad_added)
 
-    def handle_permission_request(self, security_origin, feature):
-        # Automatically grant permission for desktop capture and other media features
-        if feature in (QWebEnginePage.DesktopAudioVideoCapture,
-                       QWebEnginePage.DesktopVideoCapture,
-                       QWebEnginePage.MediaAudioVideoCapture,
-                       QWebEnginePage.MediaAudioCapture,
-                       QWebEnginePage.MediaVideoCapture):
-            self.browser.page().setFeaturePermission(
-                security_origin, feature, QWebEnginePage.PermissionGrantedByUser
-            )
+# 2. Offer von der URL abrufen
+response = requests.post("http://192.168.2.89:8080/offer", {})
+logger.info(f"{response}")
+sdp_text = response.text
+logger.info(f"{sdp_text}")
 
+# 3. SDP parsen und in webrtcbin laden
+res, sdpmsg = GstSdp.SDPMessage.new()
+GstSdp.sdp_message_parse_buffer(bytes(sdp_text.encode()), sdpmsg)
+offer = GstWebRTC.WebRTCSessionDescription.new(GstWebRTC.WebRTCSDPType.OFFER, sdpmsg)
 
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    window = MainWindow()
-    window.show()
-    sys.exit(app.exec())
+pipeline.set_state(Gst.State.PLAYING)
+promise = Gst.Promise.new_with_change_func(on_offer_set, None)
+webrtc.emit('set-remote-description', offer, promise)
+
+# Loop starten
+from gi.repository import GLib
+loop = GLib.MainLoop()
+loop.run()
