@@ -97,10 +97,20 @@ export default class Broadcasting<
                 const sender = pc.getSenders().find(s => s.track.kind === 'video');
                 const parameters = sender.getParameters();
                 parameters.degradationPreference = 'maintain-framerate';
+
+                if (parameters.encodings && parameters.encodings[0]) {
+                    (parameters.encodings[0] as any).degradationPreference
+                        = parameters.degradationPreference;
+                }
                 await sender.setParameters(parameters);
 
+                const manipulateSDP = (sdp: string) => {
+                    return sdp.replace(/a=fmtp:96 (.*)/g, "a=fmtp:96 $1;x-google-min-bitrate=500");
+                };
+
                 const offer = await pc.createOffer();
-                await pc.setLocalDescription(offer);
+                const modifiedOffer = {type: offer.type, sdp: manipulateSDP(offer.sdp!)};
+                await pc.setLocalDescription(modifiedOffer);
 
                 fetch(this.props.offer, {
                     method: 'POST',

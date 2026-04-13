@@ -49,4 +49,4 @@ class AdminWindow:
         """)
 
     def run(self):
-        webview.start(self.load_html, self.window, icon="static/images/icon.png" )
+        webview.start(self.load_html, self.window, icon="static/images/icon.png")

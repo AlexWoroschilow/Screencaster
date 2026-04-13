@@ -173,7 +173,7 @@ export class AdminScene<
                             cursor: "always",
                             displaySurface: surface,
                             selfBrowserSurface: "exclude",
-                            frameRate: {min: 15, ideal: 60, max: 60}
+                            frameRate: {ideal: 60, max: 60}
                         },
                         audio: false,
                         // audio: {
@@ -211,6 +211,7 @@ export class AdminScene<
     render() {
 
         return <>
+            <SilentAudio/>
             <Columns className={"AdminScene"} centered={false} m={"0"}>
                 <Columns.Column className={"AdminSceneStream"} size={12}>
                     <video ref={this.videoRef} autoPlay playsInline/>
