@@ -1,7 +1,11 @@
+import os
 import json
 import logging
 from pathlib import Path
 from typing import List
+
+os.environ['WEBKIT_FORCE_COMPOSITING_MODE'] = '1'
+os.environ['WEBKIT_DISABLE_COMPOSITING_MODE'] = '0'
 
 import webview
 from webview import Window

@@ -14,12 +14,12 @@
 import React from "react";
 import "./AdminScene.scss";
 import {Button, Columns, Heading} from "react-bulma-components";
-import Broadcasting, {BroadcastProps} from "./AdminScene/Broadcasting";
+import {Broadcasting, BroadcastProps} from "./AdminScene/Broadcasting";
 import Streaming, {StreamingProps} from "./AdminScene/Streaming";
 import {PiAppWindowLight, PiMonitorLight} from "react-icons/pi";
-import {Simulate} from "react-dom/test-utils";
 import {IoCloseOutline} from "react-icons/io5";
 import {SilentAudio} from "./AdminScene/SilentAudio";
+import {VideoPlayer} from "../client/ClientScene/VideoPlayer";
 
 
 export type AdminSceneProps<CustomConfig extends Record<any, any> = Record<any, any>> =
@@ -47,14 +47,12 @@ export class AdminScene<
     State extends AdminSceneState = AdminSceneState
 > extends React.Component<Props, State> {
 
-    protected videoRef: React.RefObject<HTMLVideoElement>;
     protected broadcastingRef: React.RefObject<Broadcasting>;
     protected streamingRef: React.RefObject<Streaming>;
 
     constructor(props: Props) {
         super(props);
 
-        this.videoRef = React.createRef();
         this.broadcastingRef = React.createRef();
         this.streamingRef = React.createRef();
 
@@ -138,10 +136,6 @@ export class AdminScene<
     }
 
     onStartedStream(stream: MediaStream) {
-        // @ts-ignore
-        (this?.videoRef?.current != undefined) &&
-        (this.videoRef.current.srcObject = stream);
-
         return this.setState({
             stream: (stream as MediaStream)
         });
@@ -214,7 +208,14 @@ export class AdminScene<
             <SilentAudio/>
             <Columns className={"AdminScene"} centered={false} m={"0"}>
                 <Columns.Column className={"AdminSceneStream"} size={12}>
-                    <video ref={this.videoRef} autoPlay playsInline/>
+                    {(this?.state?.stream != undefined) &&
+                        <VideoPlayer
+                            options={{
+                                controls: false,
+                                autoplay: true
+                            }}
+                            stream={this.state.stream}
+                        />}
                 </Columns.Column>
                 <Columns.Column className={"AdminSceneToolbox"} size={12}>
                     <Columns centered={true}>

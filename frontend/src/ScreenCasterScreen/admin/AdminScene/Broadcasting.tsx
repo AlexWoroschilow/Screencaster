@@ -14,6 +14,7 @@ import React from "react";
 import {Button, Columns, Heading} from "react-bulma-components";
 import {QRCodeSVG} from 'qrcode.react';
 import {CopyToClipboard} from 'react-copy-to-clipboard';
+import Loader from "react-loader-spinner";
 
 import "./Broadcasting.scss";
 import {PiCopySimpleThin} from "react-icons/pi";
@@ -32,7 +33,7 @@ export interface BroadcastState {
 }
 
 
-export default class Broadcasting<
+export class Broadcasting<
     Props extends BroadcastProps = BroadcastProps,
     State extends BroadcastState = BroadcastState
 > extends React.Component<Props, State> {
@@ -91,6 +92,7 @@ export default class Broadcasting<
                 const pc = new RTCPeerConnection();
 
                 stream.getTracks().forEach(track => {
+                    (track?.kind === 'video') &&
                     pc.addTrack(track, stream);
                 });
 
@@ -98,14 +100,17 @@ export default class Broadcasting<
                 const parameters = sender.getParameters();
                 parameters.degradationPreference = 'maintain-framerate';
 
-                if (parameters.encodings && parameters.encodings[0]) {
-                    (parameters.encodings[0] as any).degradationPreference
-                        = parameters.degradationPreference;
-                }
+                parameters.encodings = [{
+                    // @ts-ignore
+                    degradationPreference: 'maintain-framerate',
+                    maxBitrate: 1200000,
+                }];
+
                 await sender.setParameters(parameters);
 
                 const manipulateSDP = (sdp: string) => {
-                    return sdp.replace(/a=fmtp:96 (.*)/g, "a=fmtp:96 $1;x-google-min-bitrate=500");
+                    return sdp.replace(/a=fingerprint(.*)\r\n/g,
+                        "a=fingerprint$1\r\na=max-message-size:1200\r\n");
                 };
 
                 const offer = await pc.createOffer();
@@ -169,41 +174,50 @@ export default class Broadcasting<
         return (<>
             <Columns className={"Broadcasting"}>
                 {(this?.props?.server != undefined) &&
-                    <Columns.Column size={12} textAlign={"center"}>
-                        <QRCodeSVG
-                            value={this?.props?.server}
-                            size={320}
-                            bgColor={"#ffffff"}
-                            fgColor={"#000000"}
-                            level={"L"}
-                        />
-                        {(!this?.state?.isCopied) &&
+                    <>
+                        <Columns.Column size={12} textAlign={"center"}>
+                            <QRCodeSVG
+                                value={this?.props?.server}
+                                size={320}
+                                bgColor={"#ffffff"}
+                                fgColor={"#000000"}
+                                level={"L"}
+                            />
+
                             <CopyToClipboard text={this.props.server}>
-                                <Button onClick={this.onClickedClipboard.bind(this)}
-                                        fullwidth={true}>
-                                    {this?.props?.server} &nbsp;&nbsp;
-                                    <PiCopySimpleThin style={{color: "#000d43"}} size={22}/>
-                                </Button>
-                            </CopyToClipboard>}
+                                <>
+                                    <Button onClick={this.onClickedClipboard.bind(this)}
+                                            fullwidth={true}>
 
-                        {(this?.state?.isCopied) && <>
-                            <Button fullwidth={true}>
-                                Copied! &nbsp;&nbsp;
-                                <PiCopySimpleThin style={{color: "#000d43"}} size={22}/>
-                            </Button>
-                        </>}
+                                        {(this?.state?.peer != undefined) && <>
+                                            <Loader type="Bars"
+                                                    color={"#000000"}
+                                                    height={20}
+                                                    width={50}/>
+                                            &nbsp;
+                                        </>}
 
-                    </Columns.Column>}
+                                        {(!this?.state?.isCopied) && <>{this?.props?.server} &nbsp;</>}
+                                        {(this?.state?.isCopied) && <>Copied! &nbsp;&nbsp;</>}
 
-                {(this?.state?.error?.message == undefined && this?.props?.stream) &&
-                    <Columns.Column size={12} textAlign={"center"}>
-                        <Button onClick={this.onToggledStart.bind(this)}
-                                fullwidth={true}
-                                color={`${this.state.peer == undefined ? "success " : "danger"}`}>
-                            {`${this.state.peer == undefined ? "Start " : "Stop"} Broadcasting`}
+                                        <PiCopySimpleThin style={{color: "#000d43"}} size={22}/>
+                                    </Button>
+                                </>
+                            </CopyToClipboard>
 
-                        </Button>
-                    </Columns.Column>}
+                            {(this?.state?.error?.message == undefined && this?.props?.stream) &&
+                                <>
+                                    <Button onClick={this.onToggledStart.bind(this)}
+                                            fullwidth={true}
+                                            color={`${this.state.peer == undefined ? "success " : "danger"}`}>
+                                        {`${this.state.peer == undefined ? "Start " : "Stop"} Broadcasting`}
+                                    </Button>
+                                </>}
+
+                        </Columns.Column>
+                    </>
+                }
+
 
                 {(this?.state?.error?.message != undefined && this?.props?.stream) &&
                     <Columns.Column size={12} textAlign={"center"}>
