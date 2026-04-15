@@ -15,6 +15,8 @@ import {Button, Columns, Heading} from "react-bulma-components";
 
 import "./Streaming.scss";
 import {PiScreencastThin} from "react-icons/pi";
+import Loader from "react-loader-spinner";
+import {Surface} from "../AdminScene";
 
 
 export interface StreamingProps {
@@ -185,7 +187,16 @@ export default class Streaming<
                                 return <Button onClick={() => this.onSelectedScreen(`${item}`)}
                                                color={`${this?.state?.selected.includes(item) && "info"}`}
                                                fullwidth={true}>
-                                    <PiScreencastThin size={32}/>
+
+                                    {(this?.state?.websocket && this?.state?.selected.includes(item)) &&
+                                        <Loader type="Bars"
+                                                color={"#ffffff"}
+                                                height={20}
+                                                width={32}/>}
+
+                                    {(!this?.state?.websocket || !this?.state?.selected.includes(item)) &&
+                                        <PiScreencastThin size={32}/>}
+
                                     &nbsp;&nbsp;&nbsp;{item}
                                 </Button>
                             })}
@@ -197,7 +208,7 @@ export default class Streaming<
                             <Button onClick={this.onToggledStart.bind(this)}
                                     fullwidth={true}
                                     color={`${this.state.websocket == undefined ? "success" : "danger"}`}>
-                                {`${this.state.websocket == undefined ? "Start " : "Stop"} Streaming`}
+                                {`${this?.state?.websocket == undefined ? "Start " : "Stop"} Streaming`}
 
                             </Button>
                         </Columns.Column>}
