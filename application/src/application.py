@@ -63,12 +63,14 @@ class Application:
 
     def scanner_results(self):
         while True:
-            if self._admin_window is None: continue
-            if self._scanner is None: continue
-            self._admin_window.set_clients(
-                self._scanner.clients
-            )
             time.sleep(2)
+
+            if not self._scanner: continue
+            clients = self._scanner.clients
+            if not len(clients): continue
+
+            if not self._admin_window: continue
+            self._admin_window.set_clients(clients)
 
     def tray(self):
         image = Image.open(os.path.abspath("static/images/icon.png"))

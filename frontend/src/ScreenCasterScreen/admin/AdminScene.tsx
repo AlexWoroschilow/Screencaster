@@ -20,6 +20,7 @@ import {PiAppWindowLight, PiMonitorLight} from "react-icons/pi";
 import {IoCloseOutline} from "react-icons/io5";
 import {SilentAudio} from "./AdminScene/SilentAudio";
 import {VideoPlayer} from "../client/ClientScene/VideoPlayer";
+import Loader from "react-loader-spinner";
 
 
 export type AdminSceneProps<CustomConfig extends Record<any, any> = Record<any, any>> =
@@ -223,12 +224,31 @@ export class AdminScene<
                             <Button.Group>
                                 <Button onClick={() => this.onClickedSource(Surface.monitor)}
                                         color={`${(this?.state?.stream != undefined && this?.state?.surface == Surface.monitor) && "info"}`}>
-                                    <PiMonitorLight size={32}/>
+
+                                    {(this?.state?.stream && this?.state?.surface == Surface.monitor) &&
+                                        <Loader type="Bars"
+                                                color={"#ffffff"}
+                                                height={20}
+                                                width={32}/>}
+
+                                    {(!this?.state?.stream) &&
+                                        <PiMonitorLight
+                                            size={32}/>}
                                     Screen
                                 </Button>
                                 <Button onClick={() => this.onClickedSource(Surface.window)}
                                         color={`${(this?.state?.stream != undefined && this?.state?.surface == Surface.window) && "info"}`}>
-                                    <PiAppWindowLight size={32}/>
+
+                                    {(this?.state?.stream && this?.state?.surface == Surface.window) &&
+                                        <Loader type="Bars"
+                                                color={"#ffffff"}
+                                                height={20}
+                                                width={32}/>}
+
+                                    {(!this?.state?.stream) &&
+                                        <PiAppWindowLight
+                                            size={32}/>}
+
                                     Window
                                 </Button>
                                 <Button onClick={this.onClickedClose.bind(this)}

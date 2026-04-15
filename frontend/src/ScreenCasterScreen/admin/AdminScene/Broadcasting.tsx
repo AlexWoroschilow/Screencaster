@@ -98,7 +98,7 @@ export class Broadcasting<
 
                 const sender = pc.getSenders().find(s => s.track.kind === 'video');
                 const parameters = sender.getParameters();
-                parameters.degradationPreference = 'maintain-framerate';
+                parameters.degradationPreference = 'maintain-resolution';
 
                 parameters.encodings = [{
                     // @ts-ignore
@@ -185,24 +185,22 @@ export class Broadcasting<
                             />
 
                             <CopyToClipboard text={this.props.server}>
-                                <>
-                                    <Button onClick={this.onClickedClipboard.bind(this)}
-                                            fullwidth={true}>
+                                <Button onClick={this.onClickedClipboard.bind(this)}
+                                        fullwidth={true}>
 
-                                        {(this?.state?.peer != undefined) && <>
-                                            <Loader type="Bars"
-                                                    color={"#000000"}
-                                                    height={20}
-                                                    width={50}/>
-                                            &nbsp;
-                                        </>}
+                                    {(this?.state?.peer && this?.props?.stream) && <>
+                                        <Loader type="Bars"
+                                                color={"#000000"}
+                                                height={20}
+                                                width={50}/>
+                                        &nbsp;
+                                    </>}
 
-                                        {(!this?.state?.isCopied) && <>{this?.props?.server} &nbsp;</>}
-                                        {(this?.state?.isCopied) && <>Copied! &nbsp;&nbsp;</>}
+                                    {(!this?.state?.isCopied) && <>{this?.props?.server} &nbsp;</>}
+                                    {(this?.state?.isCopied) && <>Copied! &nbsp;&nbsp;</>}
 
-                                        <PiCopySimpleThin style={{color: "#000d43"}} size={22}/>
-                                    </Button>
-                                </>
+                                    <PiCopySimpleThin style={{color: "#000d43"}} size={22}/>
+                                </Button>
                             </CopyToClipboard>
 
                             {(this?.state?.error?.message == undefined && this?.props?.stream) &&
