@@ -96,26 +96,47 @@ export class Broadcasting<
                     pc.addTrack(track, stream);
                 });
 
-                const sender = pc.getSenders().find(s => s.track.kind === 'video');
-                const parameters = sender.getParameters();
-                parameters.degradationPreference = 'maintain-resolution';
+                const manipulateSDP = (sdp) => {
+                    let modifiedSdp = sdp;
 
-                parameters.encodings = [{
-                    // @ts-ignore
-                    degradationPreference: 'maintain-framerate',
-                    maxBitrate: 1200000,
-                }];
-
-                await sender.setParameters(parameters);
-
-                const manipulateSDP = (sdp: string) => {
-                    return sdp.replace(/a=fingerprint(.*)\r\n/g,
+                    // 1. MTU/Message Size Fix
+                    modifiedSdp = modifiedSdp.replace(/a=fingerprint(.*)\r\n/g,
                         "a=fingerprint$1\r\na=max-message-size:1200\r\n");
+
+                    // 2. Erzwungene Keyframe-Anforderung (PLI/FIR) im SDP
+                    // Dies sagt dem Empfänger, dass er aktiv neue Keyframes anfordern darf,
+                    // wenn das Bild korrupt ist.
+                    modifiedSdp = modifiedSdp.replace(/a=rtpmap:(\d+) VP8\/90000/g,
+                        "a=rtpmap:$1 VP8/90000\r\na=rtcp-fb:$1 nack pli\r\na=rtcp-fb:$1 goog-remb\r\na=rtcp-fb:$1 ccm fir");
+
+                    return modifiedSdp;
                 };
 
                 const offer = await pc.createOffer();
-                const modifiedOffer = {type: offer.type, sdp: manipulateSDP(offer.sdp!)};
+                const modifiedOffer = {type: offer.type, sdp: manipulateSDP(offer.sdp)};
                 await pc.setLocalDescription(modifiedOffer);
+                
+                // Wir müssen warten, bis der Sender initialisiert ist
+                const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
+
+                const parameters = sender.getParameters();
+
+                parameters.encodings = [{
+                    rid: "high",
+                    maxBitrate: 1500000, // 1.5 Mbps für Stabilität
+                    maxFramerate: 30,
+                    // Erzwingt, dass die Bildqualität Priorität vor der Latenz hat,
+                    // was indirekt zu saubereren Keyframes führt.
+                    priority: 'high',
+                    networkPriority: 'high',
+                    // In einigen WebRTC-Versionen verfügbar:
+                    // @ts-ignore
+                    keyFrameInterval: 1000, // Ziel: 1 Keyframe pro Sekunde (1000ms)
+                }];
+
+                // WICHTIG: setParameters muss nach setLocalDescription
+                // oder in einem stabilen Signalling-Zustand aufgerufen werden.
+                await sender.setParameters(parameters).catch(console.error);
 
                 fetch(this.props.offer, {
                     method: 'POST',

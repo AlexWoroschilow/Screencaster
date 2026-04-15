@@ -4,10 +4,16 @@ import os
 from pathlib import Path
 
 from aiohttp import web
-from aiortc import RTCPeerConnection, RTCSessionDescription
+from aiortc import RTCPeerConnection, RTCSessionDescription, RTCRtpTransceiver
 from aiortc.contrib.media import MediaRelay
 
 logger = logging.getLogger(Path(__file__).stem)
+
+from aiortc.rtp import RtcpPacket
+from aiortc.codecs import get_capabilities  # <--- Wichtiger Import!
+
+# Standard ist 1500, 1200 ist sicherer gegen Korruption
+RtcpPacket.MTU = 1200
 
 
 class ScreencastServer:
@@ -42,13 +48,23 @@ class ScreencastServer:
 
         await pc.setRemoteDescription(offer)
 
-        # If a track exists, add it to the viewer's connection
+        # --- HIER DIE FIXES EINFÜGEN ---
         if role == "viewer":
             if self.relay_track:
                 pc.addTrack(self.relay.subscribe(self.relay_track))
-                logger.info("Added relayed track to viewer")
-            else:
-                logger.warning("Viewer connected but no broadcaster track available")
+
+                capabilities = get_capabilities("video")
+
+                vp8_codecs = [c for c in capabilities.codecs if c.name == "VP8"]
+                other_codecs = [c for c in capabilities.codecs if c.name != "VP8"]
+
+                # Den Transceiver für diesen Sender finden und Preferences setzen
+                for transceiver in pc.getTransceivers():
+                    if transceiver.kind == "video":
+                        # Wir setzen VP8 an die erste Stelle
+                        transceiver.setCodecPreferences(vp8_codecs + other_codecs)
+
+                logger.info("Added relayed track to viewer with VP8 preferences")
 
         answer = await pc.createAnswer()
         await pc.setLocalDescription(answer)

@@ -170,6 +170,9 @@ export class ClientScene<
                     pc.getReceivers().forEach((receiver: RTCRtpReceiver) => {
                         if (receiver?.track?.kind === 'video') return;
 
+                        (receiver?.track?.kind == "video" && 'contentHint' in receiver?.track) &&
+                        (receiver.track.contentHint = 'motion');
+
                         ('playoutDelayHint' in receiver) &&
                         (receiver.playoutDelayHint = 0);
                     });
